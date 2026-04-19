@@ -1,7 +1,12 @@
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
-import type { BenchConfig } from "./types.js";
+import type {
+  AgentConfig,
+  BenchConfig,
+  VariantConfig,
+  VariantDefaults,
+} from "./types.js";
 
 const SetupConfigSchema = z.object({
   skillsDir: z.string().optional(),
@@ -19,6 +24,23 @@ const AgentConfigSchema = z.object({
   costPerMillionTokens: z.number().optional(),
 });
 
+const VariantDefaultsSchema = z.object({
+  agent: z.string().optional(),
+  task: z.string().optional(),
+  model: z.string().optional(),
+  model_params: z.record(z.string(), z.unknown()).optional(),
+  setup: SetupConfigSchema.optional(),
+});
+
+const VariantConfigSchema = z.object({
+  name: z.string(),
+  agent: z.string().optional(),
+  task: z.string().optional(),
+  model: z.string().optional(),
+  model_params: z.record(z.string(), z.unknown()).optional(),
+  setup: SetupConfigSchema.optional(),
+});
+
 const JudgeConfigSchema = z.object({
   provider: z.enum(["copilot", "openai", "anthropic"]).default("copilot"),
   model: z.string().optional(),
@@ -28,7 +50,10 @@ const JudgeConfigSchema = z.object({
 const BenchConfigSchema = z.object({
   agents: z.array(z.union([AgentConfigSchema, z.string()])).default([]),
   agentsDir: z.string().optional(),
+  variantDefaults: VariantDefaultsSchema.optional(),
+  variants: z.array(VariantConfigSchema).optional(),
   defaultRuns: z.number().int().min(1).default(3),
+  parallel: z.boolean().default(true),
   runsDir: z.string().default("./runs"),
   tasksDir: z.string().default("./tasks"),
   judge: JudgeConfigSchema.optional(),
@@ -37,6 +62,7 @@ const BenchConfigSchema = z.object({
 const DEFAULT_CONFIG: BenchConfig = {
   agents: [],
   defaultRuns: 3,
+  parallel: true,
   runsDir: "./runs",
   tasksDir: "./tasks",
 };
@@ -114,4 +140,54 @@ function loadAgentsFromDir(
     }
     return found;
   });
+}
+
+/**
+ * Merges a variant's overrides into the base agent config for that variant,
+ * producing the effective AgentConfig to use when running the variant.
+ *
+ * Resolution order (later wins):
+ *   base agent config → variantDefaults → variant's own settings
+ */
+export function resolveVariantAgentConfig(
+  variant: VariantConfig,
+  agents: AgentConfig[],
+  defaults?: VariantDefaults,
+): AgentConfig {
+  const agentName = variant.agent ?? defaults?.agent;
+  if (!agentName) {
+    throw new Error(
+      `Variant "${variant.name}": no agent specified and no variantDefaults.agent set.`,
+    );
+  }
+  const base = agents.find((a) => a.name === agentName);
+  if (!base) {
+    throw new Error(
+      `Variant "${variant.name}": agent "${agentName}" not found. ` +
+        `Available: ${agents.map((a) => a.name).join(", ")}`,
+    );
+  }
+
+  // Apply defaults on top of base, then variant's own settings on top
+  const effectiveModel = variant.model ?? defaults?.model ?? base.model;
+  const effectiveModelParams = {
+    ...base.model_params,
+    ...defaults?.model_params,
+    ...variant.model_params,
+  };
+  const effectiveSetup = {
+    ...base.setup,
+    ...defaults?.setup,
+    ...variant.setup,
+  };
+
+  return {
+    ...base,
+    ...(effectiveModel !== undefined ? { model: effectiveModel } : {}),
+    model_params:
+      Object.keys(effectiveModelParams).length > 0
+        ? effectiveModelParams
+        : base.model_params,
+    setup: Object.keys(effectiveSetup).length > 0 ? effectiveSetup : base.setup,
+  };
 }

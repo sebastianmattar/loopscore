@@ -4,7 +4,21 @@
         "gemini"
     ],
     "agentsDir": "./agents",
+    "variantDefaults": {
+        "task": "hello-world-api"
+    },
+    "variants": [
+        {
+            "name": "copilot-hello-world",
+            "agent": "copilot"
+        },
+        {
+            "name": "gemini-hello-world",
+            "agent": "gemini"
+        }
+    ],
     "defaultRuns": 1,
+    "parallel": true,
     "runsDir": "./runs",
     "tasksDir": "./tasks",
     "judge": {

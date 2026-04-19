@@ -4,7 +4,7 @@ import ora from "ora";
 import readline from "readline";
 import { getAgentVersion } from "./agents/base.js";
 import { getAdapter } from "./agents/index.js";
-import { loadConfig } from "./config.js";
+import { loadConfig, resolveVariantAgentConfig } from "./config.js";
 import {
   findCompletedRuns,
   listRunFiles,
@@ -23,7 +23,7 @@ import {
 import { runTask } from "./runner/index.js";
 import { applyManualScore } from "./scorers/manual.js";
 import { findTask, loadTasks } from "./tasks.js";
-import type { AgentConfig, RunResult } from "./types.js";
+import type { AgentConfig, RunResult, Task } from "./types.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -52,7 +52,12 @@ function resolveAgentConfig(
   return config.agents;
 }
 
-function makeRunSetId(taskId: string, agentName: string): string {
+function makeRunSetId(variantName: string): string {
+  const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  return `${ts}-${variantName}`;
+}
+
+function makeRunSetIdLegacy(taskId: string, agentName: string): string {
   const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   return `${ts}-${taskId}-${agentName}`;
 }
@@ -72,6 +77,146 @@ async function runHealthchecks(agents: AgentConfig[]): Promise<void> {
   }
 }
 
+/** Run one agent on one task, with an ora spinner (sequential mode). */
+async function runAgentWithSpinner(
+  task: Task,
+  agentConfig: AgentConfig,
+  runs: number,
+  config: ReturnType<typeof loadConfig>,
+  force: boolean,
+  prefixText: string,
+  variantName?: string,
+): Promise<void> {
+  const agentVersion = getAgentVersion(agentConfig);
+  if (!force) {
+    const existing = findCompletedRuns(
+      task.id,
+      agentConfig.name,
+      agentVersion,
+      runs,
+      config.runsDir,
+    );
+    if (existing) {
+      console.log(
+        chalk.yellow(
+          `\n  Skipping "${variantName ?? task.id}" / "${agentConfig.name}" ${agentVersion} — ` +
+            `already have ${existing.totalRuns} run(s) in ${existing.runSetId}. Use --force to override.`,
+        ),
+      );
+      return;
+    }
+  }
+  const runSetId = variantName
+    ? makeRunSetId(variantName)
+    : makeRunSetIdLegacy(task.id, agentConfig.name);
+
+  const spinner = ora({ prefixText }).start(`[1/${runs}] running…`);
+  let startedAt = Date.now();
+  let ticker = setInterval(() => {
+    const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
+    spinner.text = `[1/${runs}] running… ${elapsed}s`;
+  }, 1000);
+
+  const results = await runTask(
+    task,
+    agentConfig,
+    config,
+    runs,
+    runSetId,
+    (attempt, total, result) => {
+      clearInterval(ticker);
+      const score =
+        result.scoring.overall != null
+          ? chalk.green(` score=${result.scoring.overall.toFixed(2)}`)
+          : "";
+      spinner.stopAndPersist({
+        symbol: chalk.green("✓"),
+        text: `[${attempt}/${total}] done in ${result.metrics.timeMs}ms, +${result.metrics.lineCount} lines${score}`,
+      });
+      if (attempt < total) {
+        spinner.start(`[${attempt + 1}/${total}] running…`);
+      }
+    },
+    (attempt, total) => {
+      if (attempt > 1) {
+        spinner.start(`[${attempt}/${total}] running…`);
+        startedAt = Date.now();
+        ticker = setInterval(() => {
+          const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
+          spinner.text = `[${attempt}/${total}] running… ${elapsed}s`;
+        }, 1000);
+      }
+    },
+    variantName,
+  );
+  clearInterval(ticker);
+  spinner.stop();
+
+  const summaryPath = writeSummary(results, config.runsDir, runSetId);
+  console.log(chalk.gray(`  Saved: ${summaryPath}`));
+  console.log(`  Run set ID: ${chalk.cyan(runSetId)}`);
+}
+
+/** Run one agent on one task with plain log output (parallel mode). */
+async function runAgentParallel(
+  task: Task,
+  agentConfig: AgentConfig,
+  runs: number,
+  config: ReturnType<typeof loadConfig>,
+  force: boolean,
+  variantName?: string,
+): Promise<void> {
+  const agentVersion = getAgentVersion(agentConfig);
+  const label = variantName
+    ? `"${variantName}"`
+    : `"${task.id}" / "${agentConfig.name}"`;
+  if (!force) {
+    const existing = findCompletedRuns(
+      task.id,
+      agentConfig.name,
+      agentVersion,
+      runs,
+      config.runsDir,
+    );
+    if (existing) {
+      console.log(
+        chalk.yellow(
+          `  Skipping ${label} ${agentVersion} — already have ${existing.totalRuns} run(s). Use --force to override.`,
+        ),
+      );
+      return;
+    }
+  }
+  const runSetId = variantName
+    ? makeRunSetId(variantName)
+    : makeRunSetIdLegacy(task.id, agentConfig.name);
+  console.log(chalk.bold(`  Starting ${label}…`));
+
+  const results = await runTask(
+    task,
+    agentConfig,
+    config,
+    runs,
+    runSetId,
+    undefined,
+    undefined,
+    variantName,
+  );
+
+  const summaryPath = writeSummary(results, config.runsDir, runSetId);
+  const last = results[results.length - 1];
+  const score =
+    last.scoring.overall != null
+      ? chalk.green(` score=${last.scoring.overall.toFixed(2)}`)
+      : "";
+  console.log(
+    chalk.green(
+      `  ✓ ${label} — ${last.metrics.timeMs}ms, +${last.metrics.lineCount} lines${score}`,
+    ),
+  );
+  console.log(chalk.gray(`    Saved: ${summaryPath}`));
+}
+
 // ── CLI ───────────────────────────────────────────────────────────────────────
 
 export function buildCLI(): Command {
@@ -86,9 +231,12 @@ export function buildCLI(): Command {
 
   // ── bench run ──────────────────────────────────────────────────────────────
   program
-    .command("run <task-id>")
-    .description("Run a single task with one or all configured agents")
-    .option("-a, --agent <name>", "Agent name (default: all configured agents)")
+    .command("run <task-or-variant>")
+    .description(
+      "Run a variant by name, or a task with all configured agents. " +
+        "If variants are configured and the argument matches a variant name, runs that variant.",
+    )
+    .option("-a, --agent <name>", "Agent name (only used in task mode)")
     .option("-n, --runs <number>", "Number of runs per agent")
     .option(
       "-f, --force",
@@ -96,91 +244,79 @@ export function buildCLI(): Command {
     )
     .action(
       async (
-        taskId: string,
+        nameOrTaskId: string,
         opts: { agent?: string; runs?: string; force?: boolean },
       ) => {
         const config = loadConfig(program.opts().config as string | undefined);
-        const task = findTask(config.tasksDir, taskId);
-        const agents = resolveAgentConfig(opts.agent, config);
         const runs = opts.runs
           ? Math.max(1, parseInt(opts.runs, 10))
           : config.defaultRuns;
+        const force = opts.force ?? false;
 
-        await runHealthchecks(agents);
+        // Check if the argument matches a variant name
+        const matchedVariant = config.variants?.find(
+          (v) => v.name === nameOrTaskId,
+        );
 
-        for (const agentConfig of agents) {
-          const agentVersion = getAgentVersion(agentConfig);
-          if (!opts.force) {
-            const existing = findCompletedRuns(
-              task.id,
-              agentConfig.name,
-              agentVersion,
-              runs,
-              config.runsDir,
+        if (matchedVariant) {
+          // Variant mode
+          const agentConfig = resolveVariantAgentConfig(
+            matchedVariant,
+            config.agents,
+            config.variantDefaults,
+          );
+          await runHealthchecks([agentConfig]);
+          const taskId = matchedVariant.task ?? config.variantDefaults?.task;
+          if (!taskId)
+            throw new Error(
+              `Variant "${matchedVariant.name}": no task specified.`,
             );
-            if (existing) {
-              console.log(
-                chalk.yellow(
-                  `\n  Skipping "${task.id}" / "${agentConfig.name}" ${agentVersion} — ` +
-                    `already have ${existing.totalRuns} run(s) in ${existing.runSetId}. Use --force to override.`,
-                ),
-              );
-              continue;
-            }
-          }
-          const runSetId = makeRunSetId(task.id, agentConfig.name);
+          const task = findTask(config.tasksDir, taskId);
           console.log(
             chalk.bold(
-              `\nRunning task "${task.id}" with agent "${agentConfig.name}" (${runs} run${runs > 1 ? "s" : ""})…`,
+              `\nRunning variant "${matchedVariant.name}" (${runs} run${runs > 1 ? "s" : ""})…`,
+            ),
+          );
+          await runAgentWithSpinner(
+            task,
+            agentConfig,
+            runs,
+            config,
+            force,
+            " ",
+            matchedVariant.name,
+          );
+        } else {
+          // Legacy task mode
+          const task = findTask(config.tasksDir, nameOrTaskId);
+          const agents = resolveAgentConfig(opts.agent, config);
+          await runHealthchecks(agents);
+
+          const parallel = config.parallel && agents.length > 1;
+          console.log(
+            chalk.bold(
+              `\nRunning task "${task.id}" with ${agents.length} agent(s), ${runs} run(s) each${parallel ? " (parallel)" : ""}…`,
             ),
           );
 
-          const spinner = ora({ prefixText: " " }).start(
-            `[1/${runs}] running…`,
-          );
-          let startedAt = Date.now();
-          let ticker = setInterval(() => {
-            const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
-            spinner.text = `[1/${runs}] running… ${elapsed}s`;
-          }, 1000);
-
-          const results = await runTask(
-            task,
-            agentConfig,
-            config,
-            runs,
-            runSetId,
-            (attempt, total, result) => {
-              clearInterval(ticker);
-              const score =
-                result.scoring.overall != null
-                  ? chalk.green(` score=${result.scoring.overall.toFixed(2)}`)
-                  : "";
-              spinner.stopAndPersist({
-                symbol: chalk.green("✓"),
-                text: `[${attempt}/${total}] done in ${result.metrics.timeMs}ms, +${result.metrics.lineCount} lines${score}`,
-              });
-              if (attempt < total) {
-                spinner.start(`[${attempt + 1}/${total}] running…`);
-              }
-            },
-            (attempt, total) => {
-              if (attempt > 1) {
-                spinner.start(`[${attempt}/${total}] running…`);
-                startedAt = Date.now();
-                ticker = setInterval(() => {
-                  const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
-                  spinner.text = `[${attempt}/${total}] running… ${elapsed}s`;
-                }, 1000);
-              }
-            },
-          );
-          clearInterval(ticker);
-          spinner.stop();
-
-          const summaryPath = writeSummary(results, config.runsDir, runSetId);
-          console.log(chalk.gray(`  Saved: ${summaryPath}`));
-          console.log(`  Run set ID: ${chalk.cyan(runSetId)}`);
+          if (parallel) {
+            await Promise.allSettled(
+              agents.map((agentConfig) =>
+                runAgentParallel(task, agentConfig, runs, config, force),
+              ),
+            );
+          } else {
+            for (const agentConfig of agents) {
+              await runAgentWithSpinner(
+                task,
+                agentConfig,
+                runs,
+                config,
+                force,
+                " ",
+              );
+            }
+          }
         }
       },
     );
@@ -188,8 +324,13 @@ export function buildCLI(): Command {
   // ── bench run-all ──────────────────────────────────────────────────────────
   program
     .command("run-all")
-    .description("Run all tasks in the tasks directory")
-    .option("-a, --agent <name>", "Agent name (default: all configured agents)")
+    .description(
+      "Run all variants (if configured), or all tasks with all agents",
+    )
+    .option(
+      "-a, --agent <name>",
+      "Agent name (only used in task mode, no variants)",
+    )
     .option("-n, --runs <number>", "Number of runs per agent per task")
     .option(
       "-f, --force",
@@ -198,93 +339,105 @@ export function buildCLI(): Command {
     .action(
       async (opts: { agent?: string; runs?: string; force?: boolean }) => {
         const config = loadConfig(program.opts().config as string | undefined);
-        const tasks = loadTasks(config.tasksDir);
-        const agents = resolveAgentConfig(opts.agent, config);
         const runs = opts.runs
           ? Math.max(1, parseInt(opts.runs, 10))
           : config.defaultRuns;
+        const force = opts.force ?? false;
 
-        await runHealthchecks(agents);
+        if (config.variants && config.variants.length > 0) {
+          // Variant mode
+          const uniqueAgentNames = [
+            ...new Set(config.variants.map((v) => v.agent)),
+          ];
+          const agentsNeeded = config.agents.filter((a) =>
+            uniqueAgentNames.includes(a.name),
+          );
+          await runHealthchecks(agentsNeeded);
 
-        console.log(
-          chalk.bold(
-            `\nRunning ${tasks.length} task(s) with ${agents.length} agent(s), ${runs} run(s) each…`,
-          ),
-        );
+          const parallel = config.parallel && config.variants.length > 1;
+          console.log(
+            chalk.bold(
+              `\nRunning ${config.variants.length} variant(s), ${runs} run(s) each${parallel ? " (parallel)" : ""}…`,
+            ),
+          );
 
-        for (const task of tasks) {
-          for (const agentConfig of agents) {
-            const agentVersion = getAgentVersion(agentConfig);
-            if (!opts.force) {
-              const existing = findCompletedRuns(
-                task.id,
-                agentConfig.name,
-                agentVersion,
+          const runVariant = async (variant: (typeof config.variants)[0]) => {
+            const agentConfig = resolveVariantAgentConfig(
+              variant,
+              config.agents,
+              config.variantDefaults,
+            );
+            const taskId = variant.task ?? config.variantDefaults?.task;
+            if (!taskId)
+              throw new Error(`Variant "${variant.name}": no task specified.`);
+            const task = findTask(config.tasksDir, taskId);
+            if (parallel) {
+              await runAgentParallel(
+                task,
+                agentConfig,
                 runs,
-                config.runsDir,
+                config,
+                force,
+                variant.name,
               );
-              if (existing) {
-                console.log(
-                  chalk.yellow(
-                    `\n  Skipping "${task.id}" / "${agentConfig.name}" ${agentVersion} — ` +
-                      `already have ${existing.totalRuns} run(s) in ${existing.runSetId}. Use --force to override.`,
-                  ),
-                );
-                continue;
-              }
+            } else {
+              console.log(chalk.bold(`\n  Variant "${variant.name}"`));
+              await runAgentWithSpinner(
+                task,
+                agentConfig,
+                runs,
+                config,
+                force,
+                "    ",
+                variant.name,
+              );
             }
-            const runSetId = makeRunSetId(task.id, agentConfig.name);
-            console.log(
-              chalk.bold(`\n  Task "${task.id}" / Agent "${agentConfig.name}"`),
-            );
+          };
 
-            const spinner = ora({ prefixText: "    " }).start(
-              `[1/${runs}] running…`,
-            );
-            let startedAt = Date.now();
-            let ticker = setInterval(() => {
-              const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
-              spinner.text = `[1/${runs}] running… ${elapsed}s`;
-            }, 1000);
+          if (parallel) {
+            await Promise.allSettled(config.variants.map(runVariant));
+          } else {
+            for (const variant of config.variants) {
+              await runVariant(variant);
+            }
+          }
+        } else {
+          // Legacy task mode
+          const tasks = loadTasks(config.tasksDir);
+          const agents = resolveAgentConfig(opts.agent, config);
+          await runHealthchecks(agents);
 
-            const results = await runTask(
-              task,
-              agentConfig,
-              config,
-              runs,
-              runSetId,
-              (attempt, total, result) => {
-                clearInterval(ticker);
-                const score =
-                  result.scoring.overall != null
-                    ? chalk.green(` score=${result.scoring.overall.toFixed(2)}`)
-                    : "";
-                spinner.stopAndPersist({
-                  symbol: chalk.green("✓"),
-                  text: `[${attempt}/${total}] ${result.metrics.timeMs}ms +${result.metrics.lineCount} lines${score}`,
-                });
-                if (attempt < total) {
-                  spinner.start(`[${attempt + 1}/${total}] running…`);
-                }
-              },
-              (attempt, total) => {
-                if (attempt > 1) {
-                  spinner.start(`[${attempt}/${total}] running…`);
-                  startedAt = Date.now();
-                  ticker = setInterval(() => {
-                    const elapsed = ((Date.now() - startedAt) / 1000).toFixed(
-                      0,
-                    );
-                    spinner.text = `[${attempt}/${total}] running… ${elapsed}s`;
-                  }, 1000);
-                }
-              },
-            );
-            clearInterval(ticker);
-            spinner.stop();
+          const combos = tasks.flatMap((task) =>
+            agents.map((agent) => ({ task, agent })),
+          );
+          const parallel = config.parallel && combos.length > 1;
 
-            writeSummary(results, config.runsDir, runSetId);
-            console.log(chalk.gray(`    Run set: ${runSetId}`));
+          console.log(
+            chalk.bold(
+              `\nRunning ${tasks.length} task(s) with ${agents.length} agent(s), ${runs} run(s) each${parallel ? " (parallel)" : ""}…`,
+            ),
+          );
+
+          if (parallel) {
+            await Promise.allSettled(
+              combos.map(({ task, agent }) =>
+                runAgentParallel(task, agent, runs, config, force),
+              ),
+            );
+          } else {
+            for (const { task, agent } of combos) {
+              console.log(
+                chalk.bold(`\n  Task "${task.id}" / Agent "${agent.name}"`),
+              );
+              await runAgentWithSpinner(
+                task,
+                agent,
+                runs,
+                config,
+                force,
+                "    ",
+              );
+            }
           }
         }
       },
@@ -380,6 +533,32 @@ export function buildCLI(): Command {
         console.log(
           `  ${chalk.cyan(task.id)}  ${task.title}  ` +
             chalk.gray(`(${task.acceptance_criteria.length} criteria)`),
+        );
+      }
+      console.log("");
+    });
+
+  listCmd
+    .command("variants")
+    .description("List all variants defined in the config")
+    .action(() => {
+      const config = loadConfig(program.opts().config as string | undefined);
+      if (!config.variants || config.variants.length === 0) {
+        console.log(chalk.gray("No variants configured."));
+        return;
+      }
+      console.log(chalk.bold(`\nVariants:\n`));
+      for (const v of config.variants) {
+        const overrides: string[] = [];
+        if (v.model) overrides.push(`model=${v.model}`);
+        if (v.model_params && Object.keys(v.model_params).length > 0)
+          overrides.push(`params=${JSON.stringify(v.model_params)}`);
+        if (v.setup && Object.keys(v.setup).length > 0)
+          overrides.push(`setup=${JSON.stringify(v.setup)}`);
+        const extras =
+          overrides.length > 0 ? chalk.gray(`  ${overrides.join("  ")}`) : "";
+        console.log(
+          `  ${chalk.cyan(v.name)}  agent=${v.agent ?? config.variantDefaults?.agent ?? "?"}  task=${v.task ?? config.variantDefaults?.task ?? "?"}${extras}`,
         );
       }
       console.log("");

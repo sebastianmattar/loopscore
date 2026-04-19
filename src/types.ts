@@ -131,9 +131,21 @@ export interface ScoringResult {
 
 // ── Run ───────────────────────────────────────────────────────────────────────
 
+export interface ModelParams {
+  model: string | null;
+  temperature: number | null;
+  maxTokens: number | null;
+}
+
+export interface TokenUsage {
+  inputTokens: number | null;
+  outputTokens: number | null;
+}
+
 export interface RunResult {
   runId: string;
   runSetId: string;
+  variantName?: string;
   taskId: string;
   agentName: string;
   agentVersion?: string;
@@ -141,6 +153,8 @@ export interface RunResult {
   attemptNumber: number;
   startedAt: string;
   completedAt: string;
+  modelParams: ModelParams;
+  tokenUsage: TokenUsage | null;
   metrics: Metrics;
   scoring: ScoringResult;
   stdout: string;
@@ -158,6 +172,7 @@ export interface StatSummary {
 
 export interface RunSetSummary {
   runSetId: string;
+  variantName?: string;
   taskId: string;
   agentName: string;
   agentVersion?: string;
@@ -185,10 +200,48 @@ export interface JudgeConfig {
   apiKey?: string;
 }
 
+/**
+ * Default values applied to every variant before its own settings.
+ * Variants can override any of these fields.
+ */
+export interface VariantDefaults {
+  /** Default agent name */
+  agent?: string;
+  /** Default task ID */
+  task?: string;
+  /** Default model override */
+  model?: string;
+  /** Default model_params (shallow-merged, variant wins on key conflicts) */
+  model_params?: Record<string, unknown>;
+  /** Default setup config (shallow-merged, variant wins on key conflicts) */
+  setup?: SetupConfig;
+}
+
+/**
+ * A named, self-contained benchmark variant that combines a specific agent,
+ * task, and optional parameter/setup overrides into a comparable unit.
+ */
+export interface VariantConfig {
+  name: string;
+  /** Agent name — must exist in agentsDir or the agents list */
+  agent?: string;
+  /** Task ID — looked up from tasksDir */
+  task?: string;
+  /** Overrides the agent's default model */
+  model?: string;
+  /** Merged on top of the agent's model_params */
+  model_params?: Record<string, unknown>;
+  /** Overrides / extends the agent's setup config */
+  setup?: SetupConfig;
+}
+
 export interface BenchConfig {
   agents: AgentConfig[];
   agentsDir?: string;
+  variantDefaults?: VariantDefaults;
+  variants?: VariantConfig[];
   defaultRuns: number;
+  parallel: boolean;
   runsDir: string;
   tasksDir: string;
   judge?: JudgeConfig;

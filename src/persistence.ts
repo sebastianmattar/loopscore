@@ -25,6 +25,9 @@ export function writeSummary(
   const first = results[0];
   const summary: RunSetSummary = {
     runSetId,
+    ...(first.variantName !== undefined
+      ? { variantName: first.variantName }
+      : {}),
     taskId: first.taskId,
     agentName: first.agentName,
     agentVersion: first.agentVersion,

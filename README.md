@@ -1,14 +1,12 @@
 # loopscore - naive benchmark for AI agents
 
-A CLI tool to do naive benchmarks of different agentic coding agents, models, skills and configurations.
+This is a CLI tool to do naive comparisons of different agentic coding agent configurations.
 
 ## Motivation
 
-Trying to figure out which model suits best to your requirements?
-
-Not sure if your new AGENTS.md performs better than the old one?
-
-Is that MCP really improving output?
+- Trying to figure out which model suits best to your requirements?
+- Not sure if your new AGENTS.md performs better than the old one?
+- Is that MCP really improving quality of result?
 
 This is a simple tool that can run the same set of commands with different agentic environments. It will record the output and perform a simple evaluation:
 

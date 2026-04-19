@@ -41,4 +41,22 @@
 
 # Version 1.6
 
-- [x] The line counter currently counts the dist, node_modul
+- [x] Allow parallelization of the runs (can be disabled by configuration parameter)
+- [x] The currently used model, used and remaining context, temperature, and other parameters that the agent uses should be written to the run.json.
+
+- [x] Refactor the data model
+
+The benchmark is defined in `bench.config.json` and consists of multiple variants that should be compared to each other.
+For every variant the following settings can be configure:
+
+- Name
+- Agent to use
+- Agent parameters (model, temperature, etc.)
+- Task to run
+- Additional files to be added to the benchmarking workspace (e.g. skills, mcp.json, ...)
+
+# Version 1.6
+
+- [x] Extend the bench.config.json fileformat to allow definition of variant defaults. Variants inherit these settings but can override them.
+
+- [ ] When running parallel tasks we should be able to see statistics, running time, token count etc. for each.
