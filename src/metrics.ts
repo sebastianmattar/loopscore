@@ -77,7 +77,14 @@ const CODE_EXTENSIONS = new Set([
 function measureLineCount(workspacePath: string): number {
   try {
     execSync("git add -A", { cwd: workspacePath, stdio: "ignore" });
-    const output = execSync("git diff HEAD --numstat", {
+    // Commit any uncommitted changes so they appear in the commit history,
+    // then diff from the baseline tag to HEAD — this captures everything the
+    // agent generated regardless of whether it committed along the way.
+    execSync('git commit --allow-empty -m "loopscore-snapshot"', {
+      cwd: workspacePath,
+      stdio: "ignore",
+    });
+    const output = execSync("git diff loopscore-baseline HEAD --numstat", {
       cwd: workspacePath,
       encoding: "utf-8",
     });

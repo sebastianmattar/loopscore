@@ -45,11 +45,19 @@ export function createWorkspace(task: Task, setup?: SetupConfig): string {
       "target/",
       ".venv/",
       "venv/",
+      "session-state/",
+      "logs/",
+      "package-lock.json",
     ].join("\n") + "\n",
     "utf-8",
   );
 
   execSync('git commit --allow-empty -m "init"', {
+    cwd: workspacePath,
+    stdio: "ignore",
+  });
+  // Tag the baseline so we can always diff against it, even if the agent commits
+  execSync("git tag loopscore-baseline", {
     cwd: workspacePath,
     stdio: "ignore",
   });
