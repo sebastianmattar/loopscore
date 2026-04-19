@@ -5,14 +5,21 @@ import { createSubprocessAdapter } from "./base";
  * GitHub Copilot agent adapter.
  *
  * Default invocation (configurable via bench.config.json):
- *   copilot agent --file {requirementsFile}
+ *   copilot -p "{requirementsContent}" --allow-all-tools --allow-all-paths --output-format json
  *
- * Requires: `copilot` CLI installed.
+ * --allow-all-tools  is required for non-interactive (headless) mode.
+ * --allow-all-paths  allows writing anywhere in the workspace without prompts.
+ * --output-format json  emits JSONL progress events to stdout for metrics.
+ *
+ * Requires: `copilot` CLI installed and authenticated.
  */
 const copilotAdapter: AgentAdapter = createSubprocessAdapter("gh-copilot", [
-  "agent",
-  "--file",
-  "{requirementsFile}",
+  "-p",
+  "{requirementsContent}",
+  "--allow-all-tools",
+  "--allow-all-paths",
+  "--output-format",
+  "json",
 ]);
 
 export default copilotAdapter;

@@ -33,6 +33,16 @@ export function formatReport(summary: RunSetSummary): string {
     metricRow("Est. tokens", summary.metrics.tokenCount, (v) => `${v}`),
   );
 
+  if (summary.metrics.estimatedCostUsd) {
+    table.push(
+      metricRow("Est. cost (USD)", summary.metrics.estimatedCostUsd, (v) =>
+        `$${v.toFixed(4)}`,
+      ),
+    );
+  } else {
+    table.push(["Est. cost (USD)", chalk.gray("—"), "", "", ""]);
+  }
+
   if (summary.scoring.overall) {
     table.push(
       metricRow("Score (0–1)", summary.scoring.overall, (v) =>
@@ -76,6 +86,13 @@ export function formatCompare(summaries: RunSetSummary[]): string {
       stat: (s) => formatMean(s.metrics.tokenCount),
     },
     {
+      label: "Est. cost (USD)",
+      stat: (s) =>
+        s.metrics.estimatedCostUsd
+          ? `$${s.metrics.estimatedCostUsd.mean.toFixed(4)}`
+          : chalk.gray("—"),
+    },
+    {
       label: "Score (0–1)",
       stat: (s) =>
         s.scoring.overall
@@ -87,6 +104,59 @@ export function formatCompare(summaries: RunSetSummary[]): string {
 
   for (const row of rows) {
     table.push([row.label, ...summaries.map(row.stat)]);
+  }
+
+  lines.push(table.toString(), "");
+  return lines.join("\n");
+}
+
+// ── Scoreboard ────────────────────────────────────────────────────────────────
+
+export function formatScoreboard(summaries: RunSetSummary[]): string {
+  if (summaries.length === 0) {
+    return chalk.gray("\n  No run sets found.\n");
+  }
+
+  const lines: string[] = [chalk.bold("\n  Scoreboard\n")];
+
+  const table = new Table({
+    head: [
+      chalk.cyan("Agent"),
+      chalk.cyan("Task"),
+      chalk.cyan("Score"),
+      chalk.cyan("Time (ms)"),
+      chalk.cyan("Lines"),
+      chalk.cyan("Est. cost"),
+      chalk.cyan("Runs"),
+      chalk.cyan("Run Set"),
+    ],
+    style: { head: [], border: [] },
+  });
+
+  // Sort by score descending (nulls last)
+  const sorted = [...summaries].sort((a, b) => {
+    const sa = a.scoring.overall?.mean ?? -1;
+    const sb = b.scoring.overall?.mean ?? -1;
+    return sb - sa;
+  });
+
+  for (const s of sorted) {
+    const score = s.scoring.overall
+      ? chalk.green(s.scoring.overall.mean.toFixed(3))
+      : chalk.gray("—");
+    const cost = s.metrics.estimatedCostUsd
+      ? `$${s.metrics.estimatedCostUsd.mean.toFixed(4)}`
+      : chalk.gray("—");
+    table.push([
+      s.agentName,
+      s.taskId,
+      score,
+      formatMean(s.metrics.timeMs),
+      formatMean(s.metrics.lineCount),
+      cost,
+      `${s.totalRuns}`,
+      chalk.gray(s.runSetId),
+    ]);
   }
 
   lines.push(table.toString(), "");

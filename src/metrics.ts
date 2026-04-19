@@ -11,13 +11,18 @@ export async function collectMetrics(
   agentStdout: string,
   startedAt: Date,
   completedAt: Date,
+  costPerMillionTokens?: number,
 ): Promise<Metrics> {
   const timeMs = completedAt.getTime() - startedAt.getTime();
   const lineCount = measureLineCount(workspacePath);
   const complexity = measureComplexity(workspacePath);
   const tokenCount = estimateTokens(workspacePath, agentStdout);
+  const estimatedCostUsd =
+    costPerMillionTokens != null
+      ? +((tokenCount / 1_000_000) * costPerMillionTokens).toFixed(6)
+      : null;
 
-  return { timeMs, lineCount, tokenCount, complexity };
+  return { timeMs, lineCount, tokenCount, estimatedCostUsd, complexity };
 }
 
 // ── Time ──────────────────────────────────────────────────────────────────────

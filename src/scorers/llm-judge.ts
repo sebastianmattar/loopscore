@@ -12,12 +12,14 @@ import type {
 const SYSTEM_PROMPT = `You are an expert code reviewer evaluating AI-generated implementations.
 You will be given acceptance criteria and the contents of a workspace containing the generated code.
 Score each criterion from 0.0 (not met) to 1.0 (fully met) and provide concise reasoning.
+Also write a short "summary" (2-3 sentences) giving an overall human-readable assessment.
 Respond ONLY with valid JSON — no markdown fences, no extra text.`;
 
 interface JudgeResponse {
   criteria: CriterionScore[];
   overall: number;
   reasoning: string;
+  summary: string;
 }
 
 function buildUserPrompt(task: Task, workspaceSnapshot: string): string {
@@ -35,7 +37,8 @@ function buildUserPrompt(task: Task, workspaceSnapshot: string): string {
       {
         criteria: [{ criterion: "...", score: 0.9, reasoning: "..." }],
         overall: 0.9,
-        reasoning: "Overall assessment",
+        reasoning: "Detailed technical assessment",
+        summary: "2-3 sentence plain-English summary for humans.",
       },
       null,
       2,
@@ -81,6 +84,7 @@ async function judgeWithOpenAICompat(
     score: parsed.overall,
     criteria: parsed.criteria,
     reasoning: parsed.reasoning,
+    summary: parsed.summary ?? "",
     provider,
     model,
   };
@@ -108,6 +112,7 @@ async function judgeWithAnthropic(
     score: parsed.overall,
     criteria: parsed.criteria,
     reasoning: parsed.reasoning,
+    summary: parsed.summary ?? "",
     provider: "anthropic",
     model,
   };
@@ -180,6 +185,7 @@ async function judgeWithCopilotCLI(
     score: parsed.overall,
     criteria: parsed.criteria,
     reasoning: parsed.reasoning,
+    summary: parsed.summary ?? "",
     provider: "copilot",
     model: resolvedModel,
   };

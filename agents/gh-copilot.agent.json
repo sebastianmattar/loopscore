@@ -1,0 +1,13 @@
+{
+    "name": "gh-copilot",
+    "cmd": "copilot",
+    "args": [
+        "-p",
+        "{requirementsContent}",
+        "--allow-all-tools",
+        "--allow-all-paths",
+        "--output-format",
+        "json"
+    ],
+    "model_params": {}
+}

@@ -13,16 +13,16 @@ import type { SetupConfig, Task } from "../types";
  */
 export function createWorkspace(task: Task, setup?: SetupConfig): string {
   const workspacePath = fs.mkdtempSync(
-    path.join(os.tmpdir(), `agent-bench-${task.id}-`),
+    path.join(os.tmpdir(), `loopscore-${task.id}-`),
   );
 
   // Init git with a silent empty commit so we can diff later
   execSync("git init", { cwd: workspacePath, stdio: "ignore" });
-  execSync('git config user.email "agent-bench@local"', {
+  execSync('git config user.email "loopscore@local"', {
     cwd: workspacePath,
     stdio: "ignore",
   });
-  execSync('git config user.name "agent-bench"', {
+  execSync('git config user.name "loopscore"', {
     cwd: workspacePath,
     stdio: "ignore",
   });

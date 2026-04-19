@@ -1,10 +1,10 @@
 {
-    "name": "agent-bench",
+    "name": "loopscore",
     "version": "0.1.0",
     "description": "Benchmark agentic coding AIs against coding tasks",
     "packageManager": "pnpm@10.33.0",
     "bin": {
-        "bench": "./dist/index.js"
+        "loopscore": "./dist/index.js"
     },
     "scripts": {
         "build": "tsc",

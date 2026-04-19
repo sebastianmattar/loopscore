@@ -1,4 +1,4 @@
-# agent-bench
+# loopscore
 
 A CLI tool to benchmark different agentic coding AIs against coding tasks, producing comparable, reproducible results.
 
@@ -156,15 +156,15 @@ Alternatively, any agent with `cmd` + `args` defined in `bench.config.json` work
 
 ## CLI Commands
 
-### `bench run <task-id>`
+### `loopscore run <task-id>`
 
 Run a single task. Each run gets a fresh isolated git workspace.
 
 ```sh
-bench run hello-world-api
-bench run hello-world-api --agent kiro
-bench run hello-world-api --agent gh-copilot --runs 5
-bench run hello-world-api --config path/to/bench.config.json
+loopscore run hello-world-api
+loopscore run hello-world-api --agent kiro
+loopscore run hello-world-api --agent gh-copilot --runs 5
+loopscore run hello-world-api --config path/to/bench.config.json
 ```
 
 Options:
@@ -175,21 +175,21 @@ Options:
 | `-n, --runs <number>` | `defaultRuns` from config | Number of attempts             |
 | `-c, --config <path>` | `./bench.config.json`     | Config file path               |
 
-### `bench run-all`
+### `loopscore run-all`
 
 Run every task in the tasks directory.
 
 ```sh
-bench run-all
-bench run-all --agent kiro --runs 1
+loopscore run-all
+loopscore run-all --agent kiro --runs 1
 ```
 
-### `bench report <run-set-id>`
+### `loopscore report <run-set-id>`
 
 Show metrics and scores for a completed run set.
 
 ```sh
-bench report 2026-04-19T12-00-00-hello-world-api-kiro
+loopscore report 2026-04-19T12-00-00-hello-world-api-kiro
 ```
 
 Output:
@@ -207,38 +207,38 @@ Output:
   Score (0–1)  0.867   0.8   0.93  ±0.065
 ```
 
-### `bench compare <id> <id> [...]`
+### `loopscore compare <id> <id> [...]`
 
 Side-by-side comparison of multiple run sets.
 
 ```sh
-bench compare \
+loopscore compare \
   2026-04-19T12-00-00-hello-world-api-kiro \
   2026-04-19T12-10-00-hello-world-api-gh-copilot
 ```
 
-### `bench list runs`
+### `loopscore list runs`
 
 List all run set IDs (newest first).
 
 ```sh
-bench list runs
+loopscore list runs
 ```
 
-### `bench list tasks`
+### `loopscore list tasks`
 
 List all available tasks.
 
 ```sh
-bench list tasks
+loopscore list tasks
 ```
 
-### `bench review <run-set-id>`
+### `loopscore review <run-set-id>`
 
 Interactively enter manual scores for runs flagged as pending review (only relevant when `manual` is in the task's `scoring.methods`).
 
 ```sh
-bench review 2026-04-19T12-00-00-hello-world-api-kiro
+loopscore review 2026-04-19T12-00-00-hello-world-api-kiro
 ```
 
 ## Metrics
@@ -256,7 +256,7 @@ bench review 2026-04-19T12-00-00-hello-world-api-kiro
 | ------------- | ---------------------------------------------------------- |
 | **llm-judge** | An LLM scores each acceptance criterion 0–1 with reasoning |
 | **tests**     | Runs `tests_cmd` in the workspace; score = pass rate       |
-| **manual**    | Run is flagged pending; you score it with `bench review`   |
+| **manual**    | Run is flagged pending; you score it with `loopscore review`   |
 
 The **overall score** is the unweighted average of all available method scores.
 

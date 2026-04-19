@@ -46,6 +46,8 @@ export interface AgentConfig {
   model?: string;
   model_params?: Record<string, unknown>;
   setup?: SetupConfig;
+  /** USD cost per 1 million tokens, used for cost estimation. */
+  costPerMillionTokens?: number;
 }
 
 /** Interface that every agent adapter must implement */
@@ -77,6 +79,7 @@ export interface Metrics {
   timeMs: number;
   lineCount: number;
   tokenCount: number;
+  estimatedCostUsd: number | null;
   complexity: ComplexityResult | null;
 }
 
@@ -92,6 +95,7 @@ export interface LLMJudgeResult {
   score: number;
   criteria: CriterionScore[];
   reasoning: string;
+  summary: string;
   provider: JudgeProvider;
   model: string;
 }
@@ -157,6 +161,7 @@ export interface RunSetSummary {
     timeMs: StatSummary;
     lineCount: StatSummary;
     tokenCount: StatSummary;
+    estimatedCostUsd: StatSummary | null;
   };
   scoring: {
     overall: StatSummary | null;
@@ -175,6 +180,7 @@ export interface JudgeConfig {
 
 export interface BenchConfig {
   agents: AgentConfig[];
+  agentsDir?: string;
   defaultRuns: number;
   runsDir: string;
   tasksDir: string;

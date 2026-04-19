@@ -34,6 +34,13 @@ export function writeSummary(
       timeMs: computeStat(results.map((r) => r.metrics.timeMs)),
       lineCount: computeStat(results.map((r) => r.metrics.lineCount)),
       tokenCount: computeStat(results.map((r) => r.metrics.tokenCount)),
+      estimatedCostUsd: results.some((r) => r.metrics.estimatedCostUsd != null)
+        ? computeStat(
+            results
+              .map((r) => r.metrics.estimatedCostUsd)
+              .filter((v): v is number => v != null),
+          )
+        : null,
     },
     scoring: {
       overall: results.some((r) => r.scoring.overall != null)
@@ -89,6 +96,104 @@ export function listRunFiles(runSetId: string, runsDir: string): string[] {
     .filter((f) => f.startsWith("run-") && f.endsWith(".json"))
     .map((f) => path.join(runSetDir, f))
     .sort();
+}
+
+/**
+ * Writes agent stdout and stderr as separate log files for diagnostics.
+ * Placed at runs/{runSetId}/run-{N}-stdout.log and run-{N}-stderr.log.
+ */
+export function writeAgentLogs(
+  runSetId: string,
+  attemptNumber: number,
+  stdout: string,
+  stderr: string,
+  runsDir: string,
+): void {
+  const runSetDir = path.join(runsDir, runSetId);
+  fs.mkdirSync(runSetDir, { recursive: true });
+
+  fs.writeFileSync(
+    path.join(runSetDir, `run-${attemptNumber}-stdout.log`),
+    stdout,
+    "utf-8",
+  );
+  fs.writeFileSync(
+    path.join(runSetDir, `run-${attemptNumber}-stderr.log`),
+    stderr,
+    "utf-8",
+  );
+}
+
+/**
+ * Copies all workspace files (excluding .git) into
+ * runs/{runSetId}/run-{N}-workspace/ for human inspection.
+ */
+export function saveWorkspaceFiles(
+  runSetId: string,
+  attemptNumber: number,
+  workspacePath: string,
+  runsDir: string,
+): void {
+  const dest = path.join(runsDir, runSetId, `run-${attemptNumber}-workspace`);
+  copyDirExcludeGit(workspacePath, dest);
+}
+
+function copyDirExcludeGit(src: string, dest: string): void {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    if (entry.name === ".git") continue;
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirExcludeGit(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+/**
+ * Writes a human-readable judge summary file for a run.
+ * Placed at runs/{runSetId}/run-{N}-judge.md.
+ */
+export function writeJudgeNotes(
+  runSetId: string,
+  attemptNumber: number,
+  result: RunResult,
+  runsDir: string,
+): void {
+  const judge = result.scoring.llmJudge;
+  if (!judge) return;
+
+  const lines: string[] = [
+    `# Judge Notes — Run ${attemptNumber}`,
+    "",
+    `**Task:** ${result.taskId}  `,
+    `**Agent:** ${result.agentName}  `,
+    `**Score:** ${judge.score.toFixed(3)}  `,
+    `**Model:** ${judge.provider} / ${judge.model}`,
+    "",
+    "## Summary",
+    "",
+    judge.summary || judge.reasoning,
+    "",
+    "## Per-Criterion Scores",
+    "",
+    ...judge.criteria.map(
+      (c) => `- **${c.criterion}** — ${c.score.toFixed(2)}: ${c.reasoning}`,
+    ),
+    "",
+    "## Detailed Reasoning",
+    "",
+    judge.reasoning,
+  ];
+
+  const filePath = path.join(
+    runsDir,
+    runSetId,
+    `run-${attemptNumber}-judge.md`,
+  );
+  fs.writeFileSync(filePath, lines.join("\n"), "utf-8");
 }
 
 /** Patches a specific run-N.json in place (used by `bench review`). */

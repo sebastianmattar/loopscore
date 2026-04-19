@@ -1,7 +1,12 @@
 import crypto from "crypto";
 import { getAdapter } from "../agents";
 import { collectMetrics } from "../metrics";
-import { writeRun } from "../persistence";
+import {
+  saveWorkspaceFiles,
+  writeAgentLogs,
+  writeJudgeNotes,
+  writeRun,
+} from "../persistence";
 import { scoreRun } from "../scorers";
 import type { AgentConfig, BenchConfig, RunResult, Task } from "../types";
 import { createWorkspace } from "./workspace";
@@ -38,6 +43,7 @@ export async function runOnce(
     invokeResult.stdout,
     invokeResult.startedAt,
     invokeResult.completedAt,
+    agentConfig.costPerMillionTokens,
   );
 
   // 4. Score the output
@@ -67,6 +73,20 @@ export async function runOnce(
 
   // 5. Persist
   writeRun(result, benchConfig.runsDir);
+  writeAgentLogs(
+    runSetId,
+    attemptNumber,
+    invokeResult.stdout,
+    invokeResult.stderr,
+    benchConfig.runsDir,
+  );
+  saveWorkspaceFiles(
+    runSetId,
+    attemptNumber,
+    workspacePath,
+    benchConfig.runsDir,
+  );
+  writeJudgeNotes(runSetId, attemptNumber, result, benchConfig.runsDir);
 
   return result;
 }

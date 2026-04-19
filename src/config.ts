@@ -16,6 +16,7 @@ const AgentConfigSchema = z.object({
   model: z.string().optional(),
   model_params: z.record(z.string(), z.unknown()).optional(),
   setup: SetupConfigSchema.optional(),
+  costPerMillionTokens: z.number().optional(),
 });
 
 const JudgeConfigSchema = z.object({
@@ -26,6 +27,7 @@ const JudgeConfigSchema = z.object({
 
 const BenchConfigSchema = z.object({
   agents: z.array(AgentConfigSchema).default([]),
+  agentsDir: z.string().optional(),
   defaultRuns: z.number().int().min(1).default(3),
   runsDir: z.string().default("./runs"),
   tasksDir: z.string().default("./tasks"),
@@ -53,9 +55,33 @@ export function loadConfig(configPath?: string): BenchConfig {
 
   // Resolve relative paths relative to the config file directory
   const configDir = path.dirname(resolvedPath);
+
+  // Load agent definitions from agentsDir (*.agent.json files)
+  const agentsFromDir = loadAgentsFromDir(
+    parsed.agentsDir ? path.resolve(configDir, parsed.agentsDir) : null,
+  );
+
   return {
     ...parsed,
+    agents: [...parsed.agents, ...agentsFromDir],
     runsDir: path.resolve(configDir, parsed.runsDir),
     tasksDir: path.resolve(configDir, parsed.tasksDir),
   };
+}
+
+/**
+ * Loads all *.agent.json files from the given directory as AgentConfigs.
+ * Each file should contain a single AgentConfig object.
+ */
+function loadAgentsFromDir(agentsDir: string | null): BenchConfig["agents"] {
+  if (!agentsDir || !fs.existsSync(agentsDir)) return [];
+  const files = fs
+    .readdirSync(agentsDir)
+    .filter((f) => f.endsWith(".agent.json"))
+    .sort();
+  return files.map((f) => {
+    const filePath = path.join(agentsDir, f);
+    const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+    return AgentConfigSchema.parse(raw);
+  });
 }
