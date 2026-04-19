@@ -7,7 +7,9 @@
         "--allow-all-tools",
         "--allow-all-paths",
         "--output-format",
-        "json"
+        "json",
+        "--config-dir",
+        "{workspacePath}"
     ],
     "model_params": {}
 }
