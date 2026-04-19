@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { buildCLI } from "./cli";
+import { buildCLI } from "./cli.js";
 
 buildCLI()
   .parseAsync(process.argv)

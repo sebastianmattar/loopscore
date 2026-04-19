@@ -1,5 +1,5 @@
 import { execSync } from "child_process";
-import type { TestResult } from "../types";
+import type { TestResult } from "../types.js";
 
 export function runTests(workspacePath: string, testsCmd: string): TestResult {
   let output = "";

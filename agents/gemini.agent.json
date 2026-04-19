@@ -1,0 +1,10 @@
+{
+    "name": "gemini",
+    "cmd": "gemini",
+    "args": [
+        "-p",
+        "{requirementsContent}",
+        "--yolo"
+    ],
+    "model_params": {}
+}

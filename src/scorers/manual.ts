@@ -1,4 +1,4 @@
-import type { ManualResult } from "../types";
+import type { ManualResult } from "../types.js";
 
 /** Returns a pending ManualResult to be filled in later via `bench review`. */
 export function createManualPending(): ManualResult {

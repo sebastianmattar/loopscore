@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
-import type { BenchConfig } from "./types";
+import type { BenchConfig } from "./types.js";
 
 const SetupConfigSchema = z.object({
   skillsDir: z.string().optional(),
@@ -26,7 +26,7 @@ const JudgeConfigSchema = z.object({
 });
 
 const BenchConfigSchema = z.object({
-  agents: z.array(AgentConfigSchema).default([]),
+  agents: z.array(z.union([AgentConfigSchema, z.string()])).default([]),
   agentsDir: z.string().optional(),
   defaultRuns: z.number().int().min(1).default(3),
   runsDir: z.string().default("./runs"),
@@ -55,33 +55,63 @@ export function loadConfig(configPath?: string): BenchConfig {
 
   // Resolve relative paths relative to the config file directory
   const configDir = path.dirname(resolvedPath);
+  const resolvedAgentsDir = parsed.agentsDir
+    ? path.resolve(configDir, parsed.agentsDir)
+    : null;
 
-  // Load agent definitions from agentsDir (*.agent.json files)
-  const agentsFromDir = loadAgentsFromDir(
-    parsed.agentsDir ? path.resolve(configDir, parsed.agentsDir) : null,
+  // Separate inline agent objects from name-references (strings)
+  const inlineAgents = (
+    parsed.agents as (z.infer<typeof AgentConfigSchema> | string)[]
+  ).filter(
+    (a): a is z.infer<typeof AgentConfigSchema> => typeof a === "object",
   );
+  const nameRefs = (
+    parsed.agents as (z.infer<typeof AgentConfigSchema> | string)[]
+  ).filter((a): a is string => typeof a === "string");
+
+  // Load agents from agentsDir — filtered to nameRefs when any are present
+  const agentsFromDir = loadAgentsFromDir(resolvedAgentsDir, nameRefs);
 
   return {
     ...parsed,
-    agents: [...parsed.agents, ...agentsFromDir],
+    agents: [...inlineAgents, ...agentsFromDir],
     runsDir: path.resolve(configDir, parsed.runsDir),
     tasksDir: path.resolve(configDir, parsed.tasksDir),
   };
 }
 
 /**
- * Loads all *.agent.json files from the given directory as AgentConfigs.
- * Each file should contain a single AgentConfig object.
+ * Loads agent definitions from agentsDir.
+ * When nameRefs is non-empty, only loads agents whose names match the list.
+ * When nameRefs is empty, loads all *.agent.json files in the directory.
  */
-function loadAgentsFromDir(agentsDir: string | null): BenchConfig["agents"] {
+function loadAgentsFromDir(
+  agentsDir: string | null,
+  nameRefs: string[],
+): BenchConfig["agents"] {
   if (!agentsDir || !fs.existsSync(agentsDir)) return [];
   const files = fs
     .readdirSync(agentsDir)
     .filter((f) => f.endsWith(".agent.json"))
     .sort();
-  return files.map((f) => {
+
+  const all = files.map((f) => {
     const filePath = path.join(agentsDir, f);
     const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
     return AgentConfigSchema.parse(raw);
+  });
+
+  if (nameRefs.length === 0) return all;
+
+  // Filter to only the referenced names, in the order they were listed
+  return nameRefs.map((name) => {
+    const found = all.find((a) => a.name === name);
+    if (!found) {
+      throw new Error(
+        `Agent "${name}" not found in agentsDir "${agentsDir}". ` +
+          `Available: ${all.map((a) => a.name).join(", ")}`,
+      );
+    }
+    return found;
   });
 }

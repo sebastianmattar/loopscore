@@ -2,7 +2,7 @@ import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
-import type { ComplexityResult, Metrics } from "./types";
+import type { ComplexityResult, Metrics } from "./types.js";
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -30,9 +30,49 @@ export async function collectMetrics(
 
 // ── Line Count ────────────────────────────────────────────────────────────────
 
+const CODE_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".py",
+  ".go",
+  ".rs",
+  ".rb",
+  ".java",
+  ".c",
+  ".cpp",
+  ".cc",
+  ".h",
+  ".hpp",
+  ".cs",
+  ".php",
+  ".swift",
+  ".kt",
+  ".kts",
+  ".scala",
+  ".clj",
+  ".vue",
+  ".svelte",
+  ".html",
+  ".css",
+  ".scss",
+  ".less",
+  ".sh",
+  ".bash",
+  ".zsh",
+  ".fish",
+  ".sql",
+  ".graphql",
+  ".proto",
+]);
+
 /**
- * Returns the total number of lines added in the workspace since the initial
- * empty git commit, using `git diff HEAD --numstat`.
+ * Returns the total number of code lines added in the workspace since the
+ * initial empty git commit. Non-code files (docs, images, JSON, etc.) are
+ * excluded so the metric reflects actual implementation effort.
  */
 function measureLineCount(workspacePath: string): number {
   try {
@@ -43,9 +83,13 @@ function measureLineCount(workspacePath: string): number {
     });
     let added = 0;
     for (const line of output.split("\n")) {
-      const match = line.match(/^(\d+)\s+\d+\s+/);
+      const match = line.match(/^(\d+)\s+\d+\s+(.+)$/);
       if (match) {
-        added += parseInt(match[1], 10);
+        const filePath = match[2].trim();
+        const ext = path.extname(filePath).toLowerCase();
+        if (CODE_EXTENSIONS.has(ext)) {
+          added += parseInt(match[1], 10);
+        }
       }
     }
     return added;

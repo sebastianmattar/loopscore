@@ -2,7 +2,7 @@ import fs from "fs";
 import matter from "gray-matter";
 import path from "path";
 import { z } from "zod";
-import type { Task } from "./types";
+import type { Task } from "./types.js";
 
 const TaskFrontmatterSchema = z.object({
   id: z.string(),

@@ -1,7 +1,8 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import readline from "readline";
-import { loadConfig } from "./config";
+import { getAdapter } from "./agents/index.js";
+import { loadConfig } from "./config.js";
 import {
   listRunFiles,
   listRunSets,
@@ -9,12 +10,17 @@ import {
   readRun,
   readSummary,
   writeSummary,
-} from "./persistence";
-import { formatCompare, formatReport, formatScoreboard } from "./report";
-import { runTask } from "./runner";
-import { applyManualScore } from "./scorers/manual";
-import { findTask, loadTasks } from "./tasks";
-import type { RunResult } from "./types";
+} from "./persistence.js";
+import {
+  formatCompare,
+  formatReport,
+  formatScoreboard,
+  formatScoreboardMarkdown,
+} from "./report.js";
+import { runTask } from "./runner/index.js";
+import { applyManualScore } from "./scorers/manual.js";
+import { findTask, loadTasks } from "./tasks.js";
+import type { AgentConfig, RunResult } from "./types.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -48,13 +54,32 @@ function makeRunSetId(taskId: string, agentName: string): string {
   return `${ts}-${taskId}-${agentName}`;
 }
 
+async function runHealthchecks(agents: AgentConfig[]): Promise<void> {
+  console.log(chalk.bold("\nRunning healthchecks…"));
+  for (const agentConfig of agents) {
+    const adapter = getAdapter(agentConfig);
+    try {
+      await adapter.healthcheck(agentConfig);
+      console.log(chalk.green(`  ✓ ${agentConfig.name}`));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(chalk.red(`  ✗ ${agentConfig.name}: ${msg}`));
+      process.exit(1);
+    }
+  }
+}
+
 // ── CLI ───────────────────────────────────────────────────────────────────────
 
 export function buildCLI(): Command {
   const program = new Command()
     .name("loopscore")
     .description("Benchmark agentic coding AIs against coding tasks")
-    .version("0.1.0");
+    .version("0.1.0")
+    .option(
+      "-c, --config <path>",
+      "Path to config file (default: bench.config.json)",
+    );
 
   // ── bench run ──────────────────────────────────────────────────────────────
   program
@@ -62,51 +87,47 @@ export function buildCLI(): Command {
     .description("Run a single task with one or all configured agents")
     .option("-a, --agent <name>", "Agent name (default: all configured agents)")
     .option("-n, --runs <number>", "Number of runs per agent")
-    .option("-c, --config <path>", "Path to bench.config.json")
-    .action(
-      async (
-        taskId: string,
-        opts: { agent?: string; runs?: string; config?: string },
-      ) => {
-        const config = loadConfig(opts.config);
-        const task = findTask(config.tasksDir, taskId);
-        const agents = resolveAgentConfig(opts.agent, config);
-        const runs = opts.runs
-          ? Math.max(1, parseInt(opts.runs, 10))
-          : config.defaultRuns;
+    .action(async (taskId: string, opts: { agent?: string; runs?: string }) => {
+      const config = loadConfig(program.opts().config as string | undefined);
+      const task = findTask(config.tasksDir, taskId);
+      const agents = resolveAgentConfig(opts.agent, config);
+      const runs = opts.runs
+        ? Math.max(1, parseInt(opts.runs, 10))
+        : config.defaultRuns;
 
-        for (const agentConfig of agents) {
-          const runSetId = makeRunSetId(task.id, agentConfig.name);
-          console.log(
-            chalk.bold(
-              `\nRunning task "${task.id}" with agent "${agentConfig.name}" (${runs} run${runs > 1 ? "s" : ""})…`,
-            ),
-          );
+      await runHealthchecks(agents);
 
-          const results = await runTask(
-            task,
-            agentConfig,
-            config,
-            runs,
-            runSetId,
-            (attempt, total, result) => {
-              const score =
-                result.scoring.overall != null
-                  ? chalk.green(` score=${result.scoring.overall.toFixed(2)}`)
-                  : "";
-              console.log(
-                `  [${attempt}/${total}] done in ${result.metrics.timeMs}ms,` +
-                  ` +${result.metrics.lineCount} lines${score}`,
-              );
-            },
-          );
+      for (const agentConfig of agents) {
+        const runSetId = makeRunSetId(task.id, agentConfig.name);
+        console.log(
+          chalk.bold(
+            `\nRunning task "${task.id}" with agent "${agentConfig.name}" (${runs} run${runs > 1 ? "s" : ""})…`,
+          ),
+        );
 
-          const summaryPath = writeSummary(results, config.runsDir, runSetId);
-          console.log(chalk.gray(`  Saved: ${summaryPath}`));
-          console.log(`  Run set ID: ${chalk.cyan(runSetId)}`);
-        }
-      },
-    );
+        const results = await runTask(
+          task,
+          agentConfig,
+          config,
+          runs,
+          runSetId,
+          (attempt, total, result) => {
+            const score =
+              result.scoring.overall != null
+                ? chalk.green(` score=${result.scoring.overall.toFixed(2)}`)
+                : "";
+            console.log(
+              `  [${attempt}/${total}] done in ${result.metrics.timeMs}ms,` +
+                ` +${result.metrics.lineCount} lines${score}`,
+            );
+          },
+        );
+
+        const summaryPath = writeSummary(results, config.runsDir, runSetId);
+        console.log(chalk.gray(`  Saved: ${summaryPath}`));
+        console.log(`  Run set ID: ${chalk.cyan(runSetId)}`);
+      }
+    });
 
   // ── bench run-all ──────────────────────────────────────────────────────────
   program
@@ -114,14 +135,15 @@ export function buildCLI(): Command {
     .description("Run all tasks in the tasks directory")
     .option("-a, --agent <name>", "Agent name (default: all configured agents)")
     .option("-n, --runs <number>", "Number of runs per agent per task")
-    .option("-c, --config <path>", "Path to bench.config.json")
-    .action(async (opts: { agent?: string; runs?: string; config?: string }) => {
-      const config = loadConfig(opts.config);
+    .action(async (opts: { agent?: string; runs?: string }) => {
+      const config = loadConfig(program.opts().config as string | undefined);
       const tasks = loadTasks(config.tasksDir);
       const agents = resolveAgentConfig(opts.agent, config);
       const runs = opts.runs
         ? Math.max(1, parseInt(opts.runs, 10))
         : config.defaultRuns;
+
+      await runHealthchecks(agents);
 
       console.log(
         chalk.bold(
@@ -166,41 +188,34 @@ export function buildCLI(): Command {
       "Show metrics and scores for a run set, or all run sets with --all",
     )
     .option("-a, --all", "Show reports for all run sets")
-    .option("-c, --config <path>", "Path to bench.config.json")
-    .action(
-      (
-        runSetId: string | undefined,
-        opts: { all?: boolean; config?: string },
-      ) => {
-        const config = loadConfig(opts.config);
-        if (opts.all) {
-          const ids = listRunSets(config.runsDir);
-          if (ids.length === 0) {
-            console.log(chalk.gray("No run sets found."));
-            return;
-          }
-          for (const id of ids) {
-            const summary = readSummary(id, config.runsDir);
-            console.log(formatReport(summary));
-          }
+    .action((runSetId: string | undefined, opts: { all?: boolean }) => {
+      const config = loadConfig(program.opts().config as string | undefined);
+      if (opts.all) {
+        const ids = listRunSets(config.runsDir);
+        if (ids.length === 0) {
+          console.log(chalk.gray("No run sets found."));
           return;
         }
-        if (!runSetId) {
-          console.error(chalk.red("Provide a <run-set-id> or use --all."));
-          process.exit(1);
+        for (const id of ids) {
+          const summary = readSummary(id, config.runsDir);
+          console.log(formatReport(summary));
         }
-        const summary = readSummary(runSetId, config.runsDir);
-        console.log(formatReport(summary));
-      },
-    );
+        return;
+      }
+      if (!runSetId) {
+        console.error(chalk.red("Provide a <run-set-id> or use --all."));
+        process.exit(1);
+      }
+      const summary = readSummary(runSetId, config.runsDir);
+      console.log(formatReport(summary));
+    });
 
   // ── bench compare ─────────────────────────────────────────────────────────
   program
     .command("compare <run-set-ids...>")
     .description("Side-by-side comparison of multiple run sets")
-    .option("-c, --config <path>", "Path to bench.config.json")
-    .action((runSetIds: string[], opts: { config?: string }) => {
-      const config = loadConfig(opts.config);
+    .action((runSetIds: string[]) => {
+      const config = loadConfig(program.opts().config as string | undefined);
       const summaries = runSetIds.map((id) => readSummary(id, config.runsDir));
       console.log(formatCompare(summaries));
     });
@@ -209,12 +224,16 @@ export function buildCLI(): Command {
   program
     .command("scoreboard")
     .description("Show a ranked overview of all run sets")
-    .option("-c, --config <path>", "Path to bench.config.json")
-    .action((opts: { config?: string }) => {
-      const config = loadConfig(opts.config);
+    .option("-m, --markdown", "Output as Markdown instead of a terminal table")
+    .action((opts: { markdown?: boolean }) => {
+      const config = loadConfig(program.opts().config as string | undefined);
       const ids = listRunSets(config.runsDir);
       const summaries = ids.map((id) => readSummary(id, config.runsDir));
-      console.log(formatScoreboard(summaries));
+      console.log(
+        opts.markdown
+          ? formatScoreboardMarkdown(summaries)
+          : formatScoreboard(summaries),
+      );
     });
 
   // ── bench list ────────────────────────────────────────────────────────────
@@ -223,9 +242,8 @@ export function buildCLI(): Command {
   listCmd
     .command("runs")
     .description("List all run sets")
-    .option("-c, --config <path>", "Path to bench.config.json")
-    .action((opts: { config?: string }) => {
-      const config = loadConfig(opts.config);
+    .action(() => {
+      const config = loadConfig(program.opts().config as string | undefined);
       const runSets = listRunSets(config.runsDir);
       if (runSets.length === 0) {
         console.log(chalk.gray("No run sets found."));
@@ -241,9 +259,8 @@ export function buildCLI(): Command {
   listCmd
     .command("tasks")
     .description("List all available tasks")
-    .option("-c, --config <path>", "Path to bench.config.json")
-    .action((opts: { config?: string }) => {
-      const config = loadConfig(opts.config);
+    .action(() => {
+      const config = loadConfig(program.opts().config as string | undefined);
       const tasks = loadTasks(config.tasksDir);
       if (tasks.length === 0) {
         console.log(chalk.gray("No tasks found."));
@@ -265,9 +282,8 @@ export function buildCLI(): Command {
     .description(
       "Enter manual scores for runs in a run set that are pending review",
     )
-    .option("-c, --config <path>", "Path to bench.config.json")
-    .action(async (runSetId: string, opts: { config?: string }) => {
-      const config = loadConfig(opts.config);
+    .action(async (runSetId: string) => {
+      const config = loadConfig(program.opts().config as string | undefined);
       const files = listRunFiles(runSetId, config.runsDir);
 
       if (files.length === 0) {

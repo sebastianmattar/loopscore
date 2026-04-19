@@ -6,10 +6,10 @@ import type {
   ScoringMethod,
   ScoringResult,
   Task,
-} from "../types";
-import { runLLMJudge } from "./llm-judge";
-import { createManualPending } from "./manual";
-import { runTests } from "./test-runner";
+} from "../types.js";
+import { runLLMJudge } from "./llm-judge.js";
+import { createManualPending } from "./manual.js";
+import { runTests } from "./test-runner.js";
 
 /**
  * Reads all source files from the workspace into a single snapshot string

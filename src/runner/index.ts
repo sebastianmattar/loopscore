@@ -1,15 +1,15 @@
 import crypto from "crypto";
-import { getAdapter } from "../agents";
-import { collectMetrics } from "../metrics";
+import { getAdapter } from "../agents/index.js";
+import { collectMetrics } from "../metrics.js";
 import {
   saveWorkspaceFiles,
   writeAgentLogs,
   writeJudgeNotes,
   writeRun,
-} from "../persistence";
-import { scoreRun } from "../scorers";
-import type { AgentConfig, BenchConfig, RunResult, Task } from "../types";
-import { createWorkspace } from "./workspace";
+} from "../persistence.js";
+import { scoreRun } from "../scorers/index.js";
+import type { AgentConfig, BenchConfig, RunResult, Task } from "../types.js";
+import { createWorkspace } from "./workspace.js";
 
 export interface RunOptions {
   runSetId: string;

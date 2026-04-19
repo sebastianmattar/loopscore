@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import Table from "cli-table3";
-import type { RunSetSummary, StatSummary } from "./types";
+import type { RunSetSummary, StatSummary } from "./types.js";
 
 // ── Single run-set report ─────────────────────────────────────────────────────
 
@@ -35,8 +35,10 @@ export function formatReport(summary: RunSetSummary): string {
 
   if (summary.metrics.estimatedCostUsd) {
     table.push(
-      metricRow("Est. cost (USD)", summary.metrics.estimatedCostUsd, (v) =>
-        `$${v.toFixed(4)}`,
+      metricRow(
+        "Est. cost (USD)",
+        summary.metrics.estimatedCostUsd,
+        (v) => `$${v.toFixed(4)}`,
       ),
     );
   } else {
@@ -160,6 +162,41 @@ export function formatScoreboard(summaries: RunSetSummary[]): string {
   }
 
   lines.push(table.toString(), "");
+  return lines.join("\n");
+}
+
+// ── Scoreboard (Markdown) ─────────────────────────────────────────────────────
+
+export function formatScoreboardMarkdown(summaries: RunSetSummary[]): string {
+  if (summaries.length === 0) {
+    return "_No run sets found._\n";
+  }
+
+  const sorted = [...summaries].sort((a, b) => {
+    const sa = a.scoring.overall?.mean ?? -1;
+    const sb = b.scoring.overall?.mean ?? -1;
+    return sb - sa;
+  });
+
+  const rows = sorted.map((s) => {
+    const score = s.scoring.overall ? s.scoring.overall.mean.toFixed(3) : "—";
+    const cost = s.metrics.estimatedCostUsd
+      ? `$${s.metrics.estimatedCostUsd.mean.toFixed(4)}`
+      : "—";
+    const time = formatMean(s.metrics.timeMs);
+    const lines = formatMean(s.metrics.lineCount);
+    return `| ${s.agentName} | ${s.taskId} | ${score} | ${time} | ${lines} | ${cost} | ${s.totalRuns} | ${s.runSetId} |`;
+  });
+
+  const lines: string[] = [
+    "# Scoreboard",
+    "",
+    "| Agent | Task | Score | Time (ms) | Lines | Est. cost | Runs | Run Set |",
+    "|-------|------|------:|----------:|------:|-----------|-----:|---------|",
+    ...rows,
+    "",
+  ];
+
   return lines.join("\n");
 }
 

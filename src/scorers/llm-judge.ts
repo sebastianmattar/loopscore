@@ -7,7 +7,7 @@ import type {
   JudgeProvider,
   LLMJudgeResult,
   Task,
-} from "../types";
+} from "../types.js";
 
 const SYSTEM_PROMPT = `You are an expert code reviewer evaluating AI-generated implementations.
 You will be given acceptance criteria and the contents of a workspace containing the generated code.

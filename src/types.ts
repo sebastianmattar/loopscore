@@ -53,6 +53,11 @@ export interface AgentConfig {
 /** Interface that every agent adapter must implement */
 export interface AgentAdapter {
   name: string;
+  /**
+   * Verifies the agent is installed and ready (authenticated, etc.).
+   * Should throw an Error with a human-readable message if not healthy.
+   */
+  healthcheck(config: AgentConfig): Promise<void>;
   invoke(
     workspacePath: string,
     task: Task,

@@ -1,7 +1,9 @@
-import type { AgentAdapter, AgentConfig } from "../types";
-import { createSubprocessAdapter } from "./base";
-import copilotAdapter from "./copilot";
-import kiroAdapter from "./kiro";
+import type { AgentAdapter, AgentConfig } from "../types.js";
+import { createSubprocessAdapter } from "./base.js";
+import claudeAdapter from "./claude.js";
+import copilotAdapter from "./copilot.js";
+import geminiAdapter from "./gemini.js";
+import kiroAdapter from "./kiro.js";
 
 /**
  * Built-in adapters. Keys match the `name` field in AgentConfig.
@@ -10,6 +12,8 @@ import kiroAdapter from "./kiro";
 const BUILT_IN_ADAPTERS: Record<string, AgentAdapter> = {
   "gh-copilot": copilotAdapter,
   kiro: kiroAdapter,
+  gemini: geminiAdapter,
+  claude: claudeAdapter,
 };
 
 /**

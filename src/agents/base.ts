@@ -1,12 +1,13 @@
+import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
-import { spawnAgent } from "../runner/subprocess";
+import { spawnAgent } from "../runner/subprocess.js";
 import type {
   AgentAdapter,
   AgentConfig,
   AgentInvokeResult,
   Task,
-} from "../types";
+} from "../types.js";
 
 /**
  * Substitutes template variables in args:
@@ -44,6 +45,21 @@ export function createSubprocessAdapter(
 ): AgentAdapter {
   return {
     name: adapterName,
+
+    async healthcheck(config: AgentConfig): Promise<void> {
+      try {
+        execFileSync(config.cmd, ["--version"], {
+          stdio: "ignore",
+          timeout: 8000,
+        });
+      } catch {
+        throw new Error(
+          `Agent "${config.name}" healthcheck failed: command "${config.cmd}" not found or returned an error. ` +
+            `Make sure it is installed and available in PATH.`,
+        );
+      }
+    },
+
     async invoke(
       workspacePath: string,
       task: Task,

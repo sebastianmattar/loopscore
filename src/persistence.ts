@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import type { RunResult, RunSetSummary, StatSummary } from "./types";
+import type { RunResult, RunSetSummary, StatSummary } from "./types.js";
 
 // ── Write ─────────────────────────────────────────────────────────────────────
 
