@@ -1,9 +1,12 @@
 import chalk from "chalk";
 import { Command } from "commander";
+import ora from "ora";
 import readline from "readline";
+import { getAgentVersion } from "./agents/base.js";
 import { getAdapter } from "./agents/index.js";
 import { loadConfig } from "./config.js";
 import {
+  findCompletedRuns,
   listRunFiles,
   listRunSets,
   patchRun,
@@ -87,76 +90,52 @@ export function buildCLI(): Command {
     .description("Run a single task with one or all configured agents")
     .option("-a, --agent <name>", "Agent name (default: all configured agents)")
     .option("-n, --runs <number>", "Number of runs per agent")
-    .action(async (taskId: string, opts: { agent?: string; runs?: string }) => {
-      const config = loadConfig(program.opts().config as string | undefined);
-      const task = findTask(config.tasksDir, taskId);
-      const agents = resolveAgentConfig(opts.agent, config);
-      const runs = opts.runs
-        ? Math.max(1, parseInt(opts.runs, 10))
-        : config.defaultRuns;
+    .option(
+      "-f, --force",
+      "Run even if enough runs already exist for this configuration",
+    )
+    .action(
+      async (
+        taskId: string,
+        opts: { agent?: string; runs?: string; force?: boolean },
+      ) => {
+        const config = loadConfig(program.opts().config as string | undefined);
+        const task = findTask(config.tasksDir, taskId);
+        const agents = resolveAgentConfig(opts.agent, config);
+        const runs = opts.runs
+          ? Math.max(1, parseInt(opts.runs, 10))
+          : config.defaultRuns;
 
-      await runHealthchecks(agents);
+        await runHealthchecks(agents);
 
-      for (const agentConfig of agents) {
-        const runSetId = makeRunSetId(task.id, agentConfig.name);
-        console.log(
-          chalk.bold(
-            `\nRunning task "${task.id}" with agent "${agentConfig.name}" (${runs} run${runs > 1 ? "s" : ""})…`,
-          ),
-        );
-
-        const results = await runTask(
-          task,
-          agentConfig,
-          config,
-          runs,
-          runSetId,
-          (attempt, total, result) => {
-            const score =
-              result.scoring.overall != null
-                ? chalk.green(` score=${result.scoring.overall.toFixed(2)}`)
-                : "";
-            console.log(
-              `  [${attempt}/${total}] done in ${result.metrics.timeMs}ms,` +
-                ` +${result.metrics.lineCount} lines${score}`,
-            );
-          },
-        );
-
-        const summaryPath = writeSummary(results, config.runsDir, runSetId);
-        console.log(chalk.gray(`  Saved: ${summaryPath}`));
-        console.log(`  Run set ID: ${chalk.cyan(runSetId)}`);
-      }
-    });
-
-  // ── bench run-all ──────────────────────────────────────────────────────────
-  program
-    .command("run-all")
-    .description("Run all tasks in the tasks directory")
-    .option("-a, --agent <name>", "Agent name (default: all configured agents)")
-    .option("-n, --runs <number>", "Number of runs per agent per task")
-    .action(async (opts: { agent?: string; runs?: string }) => {
-      const config = loadConfig(program.opts().config as string | undefined);
-      const tasks = loadTasks(config.tasksDir);
-      const agents = resolveAgentConfig(opts.agent, config);
-      const runs = opts.runs
-        ? Math.max(1, parseInt(opts.runs, 10))
-        : config.defaultRuns;
-
-      await runHealthchecks(agents);
-
-      console.log(
-        chalk.bold(
-          `\nRunning ${tasks.length} task(s) with ${agents.length} agent(s), ${runs} run(s) each…`,
-        ),
-      );
-
-      for (const task of tasks) {
         for (const agentConfig of agents) {
+          const agentVersion = getAgentVersion(agentConfig);
+          if (!opts.force) {
+            const existing = findCompletedRuns(
+              task.id,
+              agentConfig.name,
+              agentVersion,
+              runs,
+              config.runsDir,
+            );
+            if (existing) {
+              console.log(
+                chalk.yellow(
+                  `\n  Skipping "${task.id}" / "${agentConfig.name}" ${agentVersion} — ` +
+                    `already have ${existing.totalRuns} run(s) in ${existing.runSetId}. Use --force to override.`,
+                ),
+              );
+              continue;
+            }
+          }
           const runSetId = makeRunSetId(task.id, agentConfig.name);
           console.log(
-            chalk.bold(`\n  Task "${task.id}" / Agent "${agentConfig.name}"`),
+            chalk.bold(
+              `\nRunning task "${task.id}" with agent "${agentConfig.name}" (${runs} run${runs > 1 ? "s" : ""})…`,
+            ),
           );
+
+          const spinner = ora({ prefixText: " " }).start(`[1/${runs}] running…`);
 
           const results = await runTask(
             task,
@@ -169,17 +148,115 @@ export function buildCLI(): Command {
                 result.scoring.overall != null
                   ? chalk.green(` score=${result.scoring.overall.toFixed(2)}`)
                   : "";
-              console.log(
-                `    [${attempt}/${total}] ${result.metrics.timeMs}ms +${result.metrics.lineCount} lines${score}`,
-              );
+              spinner.stopAndPersist({
+                symbol: chalk.green("✓"),
+                text: `[${attempt}/${total}] done in ${result.metrics.timeMs}ms, +${result.metrics.lineCount} lines${score}`,
+              });
+              if (attempt < total) {
+                spinner.start(`[${attempt + 1}/${total}] running…`);
+              }
+            },
+            (attempt, total) => {
+              if (attempt > 1) spinner.start(`[${attempt}/${total}] running…`);
             },
           );
+          spinner.stop();
 
-          writeSummary(results, config.runsDir, runSetId);
-          console.log(chalk.gray(`    Run set: ${runSetId}`));
+          const summaryPath = writeSummary(results, config.runsDir, runSetId);
+          console.log(chalk.gray(`  Saved: ${summaryPath}`));
+          console.log(`  Run set ID: ${chalk.cyan(runSetId)}`);
         }
-      }
-    });
+      },
+    );
+
+  // ── bench run-all ──────────────────────────────────────────────────────────
+  program
+    .command("run-all")
+    .description("Run all tasks in the tasks directory")
+    .option("-a, --agent <name>", "Agent name (default: all configured agents)")
+    .option("-n, --runs <number>", "Number of runs per agent per task")
+    .option(
+      "-f, --force",
+      "Run even if enough runs already exist for this configuration",
+    )
+    .action(
+      async (opts: { agent?: string; runs?: string; force?: boolean }) => {
+        const config = loadConfig(program.opts().config as string | undefined);
+        const tasks = loadTasks(config.tasksDir);
+        const agents = resolveAgentConfig(opts.agent, config);
+        const runs = opts.runs
+          ? Math.max(1, parseInt(opts.runs, 10))
+          : config.defaultRuns;
+
+        await runHealthchecks(agents);
+
+        console.log(
+          chalk.bold(
+            `\nRunning ${tasks.length} task(s) with ${agents.length} agent(s), ${runs} run(s) each…`,
+          ),
+        );
+
+        for (const task of tasks) {
+          for (const agentConfig of agents) {
+            const agentVersion = getAgentVersion(agentConfig);
+            if (!opts.force) {
+              const existing = findCompletedRuns(
+                task.id,
+                agentConfig.name,
+                agentVersion,
+                runs,
+                config.runsDir,
+              );
+              if (existing) {
+                console.log(
+                  chalk.yellow(
+                    `\n  Skipping "${task.id}" / "${agentConfig.name}" ${agentVersion} — ` +
+                      `already have ${existing.totalRuns} run(s) in ${existing.runSetId}. Use --force to override.`,
+                  ),
+                );
+                continue;
+              }
+            }
+            const runSetId = makeRunSetId(task.id, agentConfig.name);
+            console.log(
+              chalk.bold(`\n  Task "${task.id}" / Agent "${agentConfig.name}"`),
+            );
+
+            const spinner = ora({ prefixText: "    " }).start(
+              `[1/${runs}] running…`,
+            );
+
+            const results = await runTask(
+              task,
+              agentConfig,
+              config,
+              runs,
+              runSetId,
+              (attempt, total, result) => {
+                const score =
+                  result.scoring.overall != null
+                    ? chalk.green(` score=${result.scoring.overall.toFixed(2)}`)
+                    : "";
+                spinner.stopAndPersist({
+                  symbol: chalk.green("✓"),
+                  text: `[${attempt}/${total}] ${result.metrics.timeMs}ms +${result.metrics.lineCount} lines${score}`,
+                });
+                if (attempt < total) {
+                  spinner.start(`[${attempt + 1}/${total}] running…`);
+                }
+              },
+              (attempt, total) => {
+                if (attempt > 1) spinner.start(`[${attempt}/${total}] running…`);
+              },
+            );
+            spinner.stop();
+
+            writeSummary(results, config.runsDir, runSetId);
+            console.log(chalk.gray(`    Run set: ${runSetId}`));
+          }
+        }
+      },
+    );
 
   // ── bench report ──────────────────────────────────────────────────────────
   program

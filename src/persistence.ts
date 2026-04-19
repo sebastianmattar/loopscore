@@ -27,6 +27,7 @@ export function writeSummary(
     runSetId,
     taskId: first.taskId,
     agentName: first.agentName,
+    agentVersion: first.agentVersion,
     agentConfig: first.agentConfig,
     totalRuns: results.length,
     completedAt: new Date().toISOString(),
@@ -86,6 +87,36 @@ export function listRunSets(runsDir: string): string[] {
     .map((e) => e.name)
     .sort()
     .reverse(); // newest first
+}
+
+/**
+ * Checks if a sufficient number of runs already exist for a given
+ * (taskId, agentName, agentVersion) combination.
+ * Returns the matching summary if found, undefined otherwise.
+ */
+export function findCompletedRuns(
+  taskId: string,
+  agentName: string,
+  agentVersion: string,
+  minRuns: number,
+  runsDir: string,
+): RunSetSummary | undefined {
+  for (const id of listRunSets(runsDir)) {
+    try {
+      const summary = readSummary(id, runsDir);
+      if (
+        summary.taskId === taskId &&
+        summary.agentName === agentName &&
+        summary.agentVersion === agentVersion &&
+        summary.totalRuns >= minRuns
+      ) {
+        return summary;
+      }
+    } catch {
+      // skip unreadable
+    }
+  }
+  return undefined;
 }
 
 export function listRunFiles(runSetId: string, runsDir: string): string[] {

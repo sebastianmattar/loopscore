@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { getAgentVersion } from "../agents/base.js";
 import { getAdapter } from "../agents/index.js";
 import { collectMetrics } from "../metrics.js";
 import {
@@ -35,6 +36,7 @@ export async function runOnce(
 
   // 2. Invoke agent
   const adapter = getAdapter(agentConfig);
+  const agentVersion = getAgentVersion(agentConfig);
   const invokeResult = await adapter.invoke(workspacePath, task, agentConfig);
 
   // 3. Collect metrics
@@ -59,6 +61,7 @@ export async function runOnce(
     runSetId,
     taskId: task.id,
     agentName: agentConfig.name,
+    agentVersion,
     agentConfig,
     attemptNumber,
     startedAt: invokeResult.startedAt.toISOString(),
@@ -101,10 +104,12 @@ export async function runTask(
   runs: number,
   runSetId: string,
   onProgress?: (attempt: number, total: number, result: RunResult) => void,
+  onAttemptStart?: (attempt: number, total: number) => void,
 ): Promise<RunResult[]> {
   const results: RunResult[] = [];
 
   for (let i = 1; i <= runs; i++) {
+    onAttemptStart?.(i, runs);
     const result = await runOnce(task, agentConfig, benchConfig, {
       runSetId,
       attemptNumber: i,

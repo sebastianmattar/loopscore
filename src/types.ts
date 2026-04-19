@@ -136,6 +136,7 @@ export interface RunResult {
   runSetId: string;
   taskId: string;
   agentName: string;
+  agentVersion?: string;
   agentConfig: AgentConfig;
   attemptNumber: number;
   startedAt: string;
@@ -159,6 +160,7 @@ export interface RunSetSummary {
   runSetId: string;
   taskId: string;
   agentName: string;
+  agentVersion?: string;
   agentConfig: AgentConfig;
   totalRuns: number;
   completedAt: string;

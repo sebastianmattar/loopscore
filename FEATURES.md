@@ -27,7 +27,12 @@
 
 - [x] Add option to output the scoreboard as markdown
 - [x] Migrate to chalk 5
-- [ ] Update agents.md with project structure
-- [ ] Register agent metadata, such as version in the run json
-- [ ] Do not execute a run for a specific configuration (agent, input parameters, version) after the specified number of runs for this configuration was reached
-- [ ] provide a -force flag to override this
+- [x] Update agents.md with project structure
+- [x] Register agent metadata, such as version in the run json
+- [x] Do not execute a run for a specific configuration (agent, input parameters, version) after the specified number of runs for this configuration was reached
+- [x] provide a -force flag to override this
+
+# Version 1.5
+
+- [x] Update README.md to match the project functionality
+- [x] While running a task, show a spinner with a progress/status information

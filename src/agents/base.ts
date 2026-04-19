@@ -35,10 +35,21 @@ function resolveArgs(
 }
 
 /**
- * Generic subprocess-based adapter. Works for any agent whose invocation
- * is fully described by `cmd` + `args` in the AgentConfig.
- * Concrete adapters re-use this with sensible default args.
+ * Returns the first line of `cmd --version` output, or "unknown" on failure.
  */
+export function getAgentVersion(config: AgentConfig): string {
+  try {
+    return execFileSync(config.cmd, ["--version"], {
+      timeout: 5000,
+      encoding: "utf-8",
+    })
+      .trim()
+      .split("\n")[0];
+  } catch {
+    return "unknown";
+  }
+}
+
 export function createSubprocessAdapter(
   adapterName: string,
   defaultArgs: string[],
