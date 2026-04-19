@@ -10,7 +10,7 @@ import kiroAdapter from "./kiro.js";
  * To add a new agent, create a new file in src/agents/ and register it here.
  */
 const BUILT_IN_ADAPTERS: Record<string, AgentAdapter> = {
-  "gh-copilot": copilotAdapter,
+  copilot: copilotAdapter,
   kiro: kiroAdapter,
   gemini: geminiAdapter,
   claude: claudeAdapter,

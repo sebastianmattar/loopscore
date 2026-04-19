@@ -1,4 +1,4 @@
-import type { AgentAdapter } from "../types.js";
+import type { AgentAdapter, AgentConfig } from "../types.js";
 import { createSubprocessAdapter } from "./base.js";
 
 /**
@@ -10,12 +10,24 @@ import { createSubprocessAdapter } from "./base.js";
  * -p / --prompt  runs in non-interactive (headless) mode.
  * --yolo         auto-approves all tool actions.
  *
- * Requires: `gemini` CLI installed and authenticated (`gemini auth login`).
+ * Requires: `gemini` CLI installed and `GEMINI_API_KEY` or `GOOGLE_API_KEY` set.
  */
-const geminiAdapter: AgentAdapter = createSubprocessAdapter("gemini", [
+const base = createSubprocessAdapter("gemini", [
   "-p",
   "{requirementsContent}",
   "--yolo",
 ]);
+
+const geminiAdapter: AgentAdapter = {
+  ...base,
+  async healthcheck(config: AgentConfig): Promise<void> {
+    await base.healthcheck(config);
+    if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_API_KEY) {
+      throw new Error(
+        `Agent "gemini" healthcheck failed: neither GEMINI_API_KEY nor GOOGLE_API_KEY is set.`,
+      );
+    }
+  },
+};
 
 export default geminiAdapter;

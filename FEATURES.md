@@ -36,3 +36,5 @@
 
 - [x] Update README.md to match the project functionality
 - [x] While running a task, show a spinner with a progress/status information
+- [x] Show time taken while running an agent
+- [x] The health check for the gemini CLI succeeds although no GEMINI_API_KEY is set. It causes the benchmark execution to hang for a while and then existing without results.

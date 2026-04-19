@@ -1,6 +1,7 @@
 {
     "agents": [
-        "gh-copilot"
+        "copilot",
+        "gemini"
     ],
     "agentsDir": "./agents",
     "defaultRuns": 1,

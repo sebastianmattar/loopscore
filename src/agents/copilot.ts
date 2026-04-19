@@ -15,7 +15,7 @@ import { createSubprocessAdapter } from "./base.js";
  *
  * Requires: `copilot` CLI installed and authenticated.
  */
-const copilotAdapter: AgentAdapter = createSubprocessAdapter("gh-copilot", [
+const copilotAdapter: AgentAdapter = createSubprocessAdapter("copilot", [
   "-p",
   "{requirementsContent}",
   "--allow-all-tools",

@@ -1,5 +1,5 @@
 {
-    "name": "gh-copilot",
+    "name": "copilot",
     "cmd": "copilot",
     "args": [
         "-p",

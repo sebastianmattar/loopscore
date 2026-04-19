@@ -135,7 +135,14 @@ export function buildCLI(): Command {
             ),
           );
 
-          const spinner = ora({ prefixText: " " }).start(`[1/${runs}] running…`);
+          const spinner = ora({ prefixText: " " }).start(
+            `[1/${runs}] running…`,
+          );
+          let startedAt = Date.now();
+          let ticker = setInterval(() => {
+            const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
+            spinner.text = `[1/${runs}] running… ${elapsed}s`;
+          }, 1000);
 
           const results = await runTask(
             task,
@@ -144,6 +151,7 @@ export function buildCLI(): Command {
             runs,
             runSetId,
             (attempt, total, result) => {
+              clearInterval(ticker);
               const score =
                 result.scoring.overall != null
                   ? chalk.green(` score=${result.scoring.overall.toFixed(2)}`)
@@ -157,9 +165,17 @@ export function buildCLI(): Command {
               }
             },
             (attempt, total) => {
-              if (attempt > 1) spinner.start(`[${attempt}/${total}] running…`);
+              if (attempt > 1) {
+                spinner.start(`[${attempt}/${total}] running…`);
+                startedAt = Date.now();
+                ticker = setInterval(() => {
+                  const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
+                  spinner.text = `[${attempt}/${total}] running… ${elapsed}s`;
+                }, 1000);
+              }
             },
           );
+          clearInterval(ticker);
           spinner.stop();
 
           const summaryPath = writeSummary(results, config.runsDir, runSetId);
@@ -225,6 +241,11 @@ export function buildCLI(): Command {
             const spinner = ora({ prefixText: "    " }).start(
               `[1/${runs}] running…`,
             );
+            let startedAt = Date.now();
+            let ticker = setInterval(() => {
+              const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
+              spinner.text = `[1/${runs}] running… ${elapsed}s`;
+            }, 1000);
 
             const results = await runTask(
               task,
@@ -233,6 +254,7 @@ export function buildCLI(): Command {
               runs,
               runSetId,
               (attempt, total, result) => {
+                clearInterval(ticker);
                 const score =
                   result.scoring.overall != null
                     ? chalk.green(` score=${result.scoring.overall.toFixed(2)}`)
@@ -246,9 +268,17 @@ export function buildCLI(): Command {
                 }
               },
               (attempt, total) => {
-                if (attempt > 1) spinner.start(`[${attempt}/${total}] running…`);
+                if (attempt > 1) {
+                  spinner.start(`[${attempt}/${total}] running…`);
+                  startedAt = Date.now();
+                  ticker = setInterval(() => {
+                    const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
+                    spinner.text = `[${attempt}/${total}] running… ${elapsed}s`;
+                  }, 1000);
+                }
               },
             );
+            clearInterval(ticker);
             spinner.stop();
 
             writeSummary(results, config.runsDir, runSetId);

@@ -23,7 +23,7 @@ src/
   agents/
     index.ts            Registry: maps agent name → AgentAdapter; getAdapter(), getAgentVersion()
     base.ts             createSubprocessAdapter() factory; getAgentVersion() utility
-    copilot.ts          GitHub Copilot CLI adapter (gh-copilot)
+    copilot.ts          GitHub Copilot CLI adapter (copilot)
     gemini.ts           Google Gemini CLI adapter
     claude.ts           Anthropic Claude Code CLI adapter
     kiro.ts             Kiro adapter
@@ -38,7 +38,7 @@ src/
     manual.ts           Creates pending manual review placeholder
 
 agents/                 Agent definition files (*.agent.json)
-  gh-copilot.agent.json
+  copilot.agent.json
   gemini.agent.json
   claude.agent.json
   kiro.agent.json (if present)

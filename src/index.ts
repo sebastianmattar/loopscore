@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+try { process.loadEnvFile(); } catch { /* no .env file */ }
 import { buildCLI } from "./cli.js";
 
 buildCLI()
