@@ -1,0 +1,31 @@
+{
+    "agents": [
+        {
+            "name": "gh-copilot",
+            "cmd": "copilot",
+            "args": [
+                "agent",
+                "--file",
+                "{requirementsFile}"
+            ],
+            "model_params": {}
+        },
+        {
+            "name": "kiro",
+            "cmd": "kiro",
+            "args": [
+                "--task",
+                "{requirementsFile}",
+                "--yes"
+            ],
+            "model": "claude-3-5-sonnet",
+            "model_params": {}
+        }
+    ],
+    "defaultRuns": 3,
+    "runsDir": "./runs",
+    "tasksDir": "./tasks",
+    "judge": {
+        "provider": "copilot"
+    }
+}
