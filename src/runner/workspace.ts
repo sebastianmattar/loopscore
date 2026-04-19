@@ -26,6 +26,29 @@ export function createWorkspace(task: Task, setup?: SetupConfig): string {
     cwd: workspacePath,
     stdio: "ignore",
   });
+
+  // Write .gitignore so generated dirs are never staged or counted
+  fs.writeFileSync(
+    path.join(workspacePath, ".gitignore"),
+    [
+      "node_modules/",
+      "dist/",
+      "build/",
+      "out/",
+      ".next/",
+      ".nuxt/",
+      "coverage/",
+      "vendor/",
+      "__pycache__/",
+      "*.pyc",
+      ".cache/",
+      "target/",
+      ".venv/",
+      "venv/",
+    ].join("\n") + "\n",
+    "utf-8",
+  );
+
   execSync('git commit --allow-empty -m "init"', {
     cwd: workspacePath,
     stdio: "ignore",

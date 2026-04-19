@@ -272,7 +272,9 @@ export function buildCLI(): Command {
                   spinner.start(`[${attempt}/${total}] running…`);
                   startedAt = Date.now();
                   ticker = setInterval(() => {
-                    const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
+                    const elapsed = ((Date.now() - startedAt) / 1000).toFixed(
+                      0,
+                    );
                     spinner.text = `[${attempt}/${total}] running… ${elapsed}s`;
                   }, 1000);
                 }
