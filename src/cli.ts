@@ -1,29 +1,23 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import ora from "ora";
-import readline from "readline";
 import { getAgentVersion } from "./agents/base.js";
 import { getAdapter } from "./agents/index.js";
 import { loadConfig, resolveVariantAgentConfig } from "./config.js";
 import {
   findCompletedRuns,
-  listRunFiles,
   listRunSets,
-  patchRun,
-  readRun,
   readSummary,
   writeSummary,
 } from "./persistence.js";
 import {
-  formatCompare,
   formatReport,
   formatScoreboard,
   formatScoreboardMarkdown,
 } from "./report.js";
 import { runTask } from "./runner/index.js";
-import { applyManualScore } from "./scorers/manual.js";
 import { findTask, loadTasks } from "./tasks.js";
-import type { AgentConfig, RunResult, Task } from "./types.js";
+import type { AgentConfig, Task } from "./types.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -190,7 +184,9 @@ async function runAgentParallel(
   const runSetId = variantName
     ? makeRunSetId(variantName)
     : makeRunSetIdLegacy(task.id, agentConfig.name);
-  console.log(chalk.bold(`  Starting ${label}…`));
+
+  const startedAt = Date.now();
+  console.log(chalk.bold(`  ▶ ${label} starting…`));
 
   const results = await runTask(
     task,
@@ -198,23 +194,39 @@ async function runAgentParallel(
     config,
     runs,
     runSetId,
-    undefined,
+    (attempt, total, result) => {
+      const m = result.metrics;
+      const elapsed = (m.timeMs / 1000).toFixed(1);
+      const tokens = m.tokenCount > 0 ? ` tokens=${m.tokenCount}` : "";
+      const cost =
+        m.estimatedCostUsd != null
+          ? chalk.gray(` cost=$${m.estimatedCostUsd.toFixed(4)}`)
+          : "";
+      const score =
+        result.scoring.overall != null
+          ? chalk.green(` score=${result.scoring.overall.toFixed(2)}`)
+          : "";
+      console.log(
+        chalk.green(`  ✓ ${label}`) +
+          ` [${attempt}/${total}]` +
+          ` time=${elapsed}s` +
+          ` lines=${m.lineCount}` +
+          tokens +
+          cost +
+          score,
+      );
+    },
     undefined,
     variantName,
   );
 
+  const totalElapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
   const summaryPath = writeSummary(results, config.runsDir, runSetId);
-  const last = results[results.length - 1];
-  const score =
-    last.scoring.overall != null
-      ? chalk.green(` score=${last.scoring.overall.toFixed(2)}`)
-      : "";
   console.log(
-    chalk.green(
-      `  ✓ ${label} — ${last.metrics.timeMs}ms, +${last.metrics.lineCount} lines${score}`,
+    chalk.gray(
+      `    ${label} finished in ${totalElapsed}s — saved: ${summaryPath}`,
     ),
   );
-  console.log(chalk.gray(`    Saved: ${summaryPath}`));
 }
 
 // ── CLI ───────────────────────────────────────────────────────────────────────
@@ -229,104 +241,10 @@ export function buildCLI(): Command {
       "Path to config file (default: bench.config.json)",
     );
 
-  // ── bench run ──────────────────────────────────────────────────────────────
-  program
-    .command("run <task-or-variant>")
-    .description(
-      "Run a variant by name, or a task with all configured agents. " +
-        "If variants are configured and the argument matches a variant name, runs that variant.",
-    )
-    .option("-a, --agent <name>", "Agent name (only used in task mode)")
-    .option("-n, --runs <number>", "Number of runs per agent")
-    .option(
-      "-f, --force",
-      "Run even if enough runs already exist for this configuration",
-    )
-    .action(
-      async (
-        nameOrTaskId: string,
-        opts: { agent?: string; runs?: string; force?: boolean },
-      ) => {
-        const config = loadConfig(program.opts().config as string | undefined);
-        const runs = opts.runs
-          ? Math.max(1, parseInt(opts.runs, 10))
-          : config.defaultRuns;
-        const force = opts.force ?? false;
-
-        // Check if the argument matches a variant name
-        const matchedVariant = config.variants?.find(
-          (v) => v.name === nameOrTaskId,
-        );
-
-        if (matchedVariant) {
-          // Variant mode
-          const agentConfig = resolveVariantAgentConfig(
-            matchedVariant,
-            config.agents,
-            config.variantDefaults,
-          );
-          await runHealthchecks([agentConfig]);
-          const taskId = matchedVariant.task ?? config.variantDefaults?.task;
-          if (!taskId)
-            throw new Error(
-              `Variant "${matchedVariant.name}": no task specified.`,
-            );
-          const task = findTask(config.tasksDir, taskId);
-          console.log(
-            chalk.bold(
-              `\nRunning variant "${matchedVariant.name}" (${runs} run${runs > 1 ? "s" : ""})…`,
-            ),
-          );
-          await runAgentWithSpinner(
-            task,
-            agentConfig,
-            runs,
-            config,
-            force,
-            " ",
-            matchedVariant.name,
-          );
-        } else {
-          // Legacy task mode
-          const task = findTask(config.tasksDir, nameOrTaskId);
-          const agents = resolveAgentConfig(opts.agent, config);
-          await runHealthchecks(agents);
-
-          const parallel = config.parallel && agents.length > 1;
-          console.log(
-            chalk.bold(
-              `\nRunning task "${task.id}" with ${agents.length} agent(s), ${runs} run(s) each${parallel ? " (parallel)" : ""}…`,
-            ),
-          );
-
-          if (parallel) {
-            await Promise.allSettled(
-              agents.map((agentConfig) =>
-                runAgentParallel(task, agentConfig, runs, config, force),
-              ),
-            );
-          } else {
-            for (const agentConfig of agents) {
-              await runAgentWithSpinner(
-                task,
-                agentConfig,
-                runs,
-                config,
-                force,
-                " ",
-              );
-            }
-          }
-        }
-      },
-    );
-
   // ── bench run-all ──────────────────────────────────────────────────────────
   program
     .command("run-all")
-    .description(
-      "Run all variants (if configured), or all tasks with all agents",
-    )
+    .description("Run all variants")
     .option(
       "-a, --agent <name>",
       "Agent name (only used in task mode, no variants)",
@@ -472,16 +390,6 @@ export function buildCLI(): Command {
       console.log(formatReport(summary));
     });
 
-  // ── bench compare ─────────────────────────────────────────────────────────
-  program
-    .command("compare <run-set-ids...>")
-    .description("Side-by-side comparison of multiple run sets")
-    .action((runSetIds: string[]) => {
-      const config = loadConfig(program.opts().config as string | undefined);
-      const summaries = runSetIds.map((id) => readSummary(id, config.runsDir));
-      console.log(formatCompare(summaries));
-    });
-
   // ── bench scoreboard ──────────────────────────────────────────────────────
   program
     .command("scoreboard")
@@ -519,26 +427,6 @@ export function buildCLI(): Command {
     });
 
   listCmd
-    .command("tasks")
-    .description("List all available tasks")
-    .action(() => {
-      const config = loadConfig(program.opts().config as string | undefined);
-      const tasks = loadTasks(config.tasksDir);
-      if (tasks.length === 0) {
-        console.log(chalk.gray("No tasks found."));
-        return;
-      }
-      console.log(chalk.bold(`\nTasks in ${config.tasksDir}:\n`));
-      for (const task of tasks) {
-        console.log(
-          `  ${chalk.cyan(task.id)}  ${task.title}  ` +
-            chalk.gray(`(${task.acceptance_criteria.length} criteria)`),
-        );
-      }
-      console.log("");
-    });
-
-  listCmd
     .command("variants")
     .description("List all variants defined in the config")
     .action(() => {
@@ -564,90 +452,5 @@ export function buildCLI(): Command {
       console.log("");
     });
 
-  // ── bench review ──────────────────────────────────────────────────────────
-  program
-    .command("review <run-set-id>")
-    .description(
-      "Enter manual scores for runs in a run set that are pending review",
-    )
-    .action(async (runSetId: string) => {
-      const config = loadConfig(program.opts().config as string | undefined);
-      const files = listRunFiles(runSetId, config.runsDir);
-
-      if (files.length === 0) {
-        console.error(
-          chalk.red(`No run files found for run set "${runSetId}".`),
-        );
-        process.exit(1);
-      }
-
-      const pending = files
-        .map((f) => readRun(f))
-        .filter((r) => r.scoring.manual?.pending === true);
-
-      if (pending.length === 0) {
-        console.log(chalk.green("No pending manual reviews for this run set."));
-        return;
-      }
-
-      console.log(chalk.bold(`\nManual review for run set: ${runSetId}`));
-      console.log(`${pending.length} run(s) pending review.\n`);
-
-      for (const run of pending) {
-        await reviewRun(run, runSetId, config.runsDir);
-      }
-
-      console.log(chalk.green("\nReview complete."));
-    });
-
   return program;
-}
-
-async function reviewRun(
-  run: RunResult,
-  runSetId: string,
-  runsDir: string,
-): Promise<void> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  const ask = (q: string): Promise<string> =>
-    new Promise((resolve) => rl.question(q, resolve));
-
-  console.log(
-    chalk.bold(`\nRun ${run.attemptNumber} — ${run.taskId} (${run.agentName})`),
-  );
-  console.log(chalk.gray(`  Workspace: ${run.workspacePath}`));
-
-  const scoreStr = await ask("  Score (0.0–1.0): ");
-  const score = parseFloat(scoreStr);
-  if (isNaN(score) || score < 0 || score > 1) {
-    console.log(chalk.yellow("  Invalid score; skipping this run."));
-    rl.close();
-    return;
-  }
-
-  const notes = await ask("  Notes (optional): ");
-  rl.close();
-
-  const updatedManual = applyManualScore(score, notes);
-  const updatedScoring = {
-    ...run.scoring,
-    manual: updatedManual,
-    overall: recomputeOverall(run, score),
-  };
-
-  patchRun(runSetId, run.attemptNumber, runsDir, { scoring: updatedScoring });
-  console.log(
-    chalk.green(`  Saved score ${score} for run ${run.attemptNumber}.`),
-  );
-}
-
-function recomputeOverall(run: RunResult, manualScore: number): number {
-  const scores: number[] = [manualScore];
-  if (run.scoring.llmJudge) scores.push(run.scoring.llmJudge.score);
-  if (run.scoring.tests) scores.push(run.scoring.tests.score);
-  return scores.reduce((a, b) => a + b, 0) / scores.length;
 }

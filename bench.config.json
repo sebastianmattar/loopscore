@@ -1,8 +1,4 @@
 {
-    "agents": [
-        "copilot",
-        "gemini"
-    ],
     "agentsDir": "./agents",
     "variantDefaults": {
         "task": "hello-world-api"

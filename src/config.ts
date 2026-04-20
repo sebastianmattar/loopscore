@@ -95,8 +95,17 @@ export function loadConfig(configPath?: string): BenchConfig {
     parsed.agents as (z.infer<typeof AgentConfigSchema> | string)[]
   ).filter((a): a is string => typeof a === "string");
 
-  // Load agents from agentsDir — filtered to nameRefs when any are present
-  const agentsFromDir = loadAgentsFromDir(resolvedAgentsDir, nameRefs);
+  // When variants are defined and no explicit agents/nameRefs are listed,
+  // load all agents from agentsDir automatically so variants can reference them.
+  const autoLoad =
+    parsed.variants && parsed.variants.length > 0 && parsed.agents.length === 0;
+
+  // Load agents from agentsDir — filtered to nameRefs when any are present,
+  // or all agents when in auto-load mode.
+  const agentsFromDir = loadAgentsFromDir(
+    resolvedAgentsDir,
+    autoLoad ? [] : nameRefs,
+  );
 
   return {
     ...parsed,
