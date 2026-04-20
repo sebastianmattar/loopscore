@@ -41,6 +41,6 @@ variants:
 
 runCount: 1
 parallel: true
-runsDir: ./runs
+outputDir: ./runs
 judge:
   provider: copilot

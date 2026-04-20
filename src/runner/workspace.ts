@@ -59,18 +59,25 @@ export function createWorkspace(
     cwd: workspacePath,
     stdio: "ignore",
   });
-  // Tag the baseline so we can always diff against it, even if the agent commits
-  execSync("git tag loopscore-baseline", {
-    cwd: workspacePath,
-    stdio: "ignore",
-  });
 
-  // Write additional files defined in setup.files
+  // Write additional files defined in setup.files (includes requirements.md if defined)
   for (const [relPath, content] of Object.entries(setup?.files ?? {})) {
     const dest = path.join(workspacePath, relPath);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.writeFileSync(dest, content, "utf-8");
   }
+
+  // Commit setup files and tag as baseline so the agent's output is the only
+  // diff — setup files (requirements.md, skills, etc.) are excluded from metrics.
+  execSync("git add -A", { cwd: workspacePath, stdio: "ignore" });
+  execSync('git commit --allow-empty -m "setup"', {
+    cwd: workspacePath,
+    stdio: "ignore",
+  });
+  execSync("git tag loopscore-baseline", {
+    cwd: workspacePath,
+    stdio: "ignore",
+  });
 
   return workspacePath;
 }

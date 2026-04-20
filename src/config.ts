@@ -38,6 +38,7 @@ const VariantDefaultsSchema = z.object({
   costPerMillionTokens: z.number().optional(),
   commands: CommandsConfigSchema.optional(),
   query: z.array(z.string()).optional(),
+  acceptanceCriteria: z.array(z.string()).optional(),
 });
 
 const VariantConfigSchema = z.object({
@@ -51,6 +52,7 @@ const VariantConfigSchema = z.object({
   costPerMillionTokens: z.number().optional(),
   commands: CommandsConfigSchema.optional(),
   query: z.array(z.string()).optional(),
+  acceptanceCriteria: z.array(z.string()).optional(),
 });
 
 const JudgeConfigSchema = z.object({
@@ -65,31 +67,13 @@ const BenchConfigSchema = z.object({
   acceptanceCriteria: z.array(z.string()),
   runCount: z.number().int().min(1).default(3),
   parallel: z.boolean().default(true),
-  runsDir: z.string().default("./runs"),
+  outputDir: z.string().default("./runs"),
   judge: JudgeConfigSchema,
 });
 
-export function loadConfig(configPath?: string): BenchConfig {
+export function loadConfig(configPath: string): BenchConfig {
   // Probe for YAML first, then fall back to JSON
-  const defaultBases = [
-    "bench.config.yaml",
-    "bench.config.yml",
-    "bench.config.json",
-  ];
-  let resolvedPath: string;
-  if (configPath) {
-    resolvedPath = path.resolve(configPath);
-  } else {
-    const found = defaultBases
-      .map((b) => path.resolve(process.cwd(), b))
-      .find((p) => fs.existsSync(p));
-    if (!found) {
-      throw Error(
-        `Could not find bench.config.yaml or bench.config.json in ${process.cwd()}`,
-      );
-    }
-    resolvedPath = found;
-  }
+  const resolvedPath = path.resolve(configPath);
 
   if (!fs.existsSync(resolvedPath)) {
     throw Error(`Could not find configration in ${resolvedPath}`);
@@ -104,6 +88,9 @@ export function loadConfig(configPath?: string): BenchConfig {
   // Resolve relative paths relative to the config file directory
   const configDir = path.dirname(resolvedPath);
 
+  // Derive benchmark name from config filename: "bench.config.yaml" → "bench"
+  const benchName = path.basename(resolvedPath).split(".")[0] ?? "bench";
+
   // Only keep inline agent objects (string name-references are no longer supported)
   const inlineAgents = (
     parsed.agents as (z.infer<typeof AgentConfigSchema> | string)[]
@@ -113,8 +100,10 @@ export function loadConfig(configPath?: string): BenchConfig {
 
   return {
     ...parsed,
+    name: benchName,
     agents: inlineAgents,
-    runsDir: path.resolve(configDir, parsed.runsDir),
+    // Embed bench name into outputDir: <configured_dir>/<benchName>
+    outputDir: path.resolve(configDir, parsed.outputDir, benchName),
   };
 }
 

@@ -1,3 +1,4 @@
+import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import type {
@@ -9,8 +10,27 @@ import type {
 import { runLLMJudge } from "./llm-judge";
 
 /**
- * Reads all source files from the workspace into a single snapshot string
- * to pass to the LLM judge.
+ * Returns the set of absolute file paths that were added or modified
+ * after the loopscore-baseline tag. Falls back to null if git is unavailable
+ * or the tag doesn't exist (caller should include all files in that case).
+ */
+function getPostBaselineFiles(workspacePath: string): Set<string> | null {
+  try {
+    const output = execSync("git diff loopscore-baseline HEAD --name-only", {
+      cwd: workspacePath,
+      encoding: "utf-8",
+    });
+    const files = output.split("\n").filter(Boolean);
+    return new Set(files.map((f) => path.resolve(workspacePath, f)));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Reads source files from the workspace into a single snapshot string
+ * to pass to the LLM judge. Only includes files added/changed after the
+ * loopscore-baseline tag (i.e., agent-generated files, not setup files).
  */
 function buildWorkspaceSnapshot(workspacePath: string): string {
   const SKIP = new Set(["node_modules", ".git", "dist", "build"]);
@@ -29,6 +49,7 @@ function buildWorkspaceSnapshot(workspacePath: string): string {
     ".java",
   ]);
   const parts: string[] = [];
+  const postBaseline = getPostBaselineFiles(workspacePath);
 
   function walk(dir: string) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -36,6 +57,13 @@ function buildWorkspaceSnapshot(workspacePath: string): string {
         if (!SKIP.has(entry.name)) walk(path.join(dir, entry.name));
       } else if (EXTS.has(path.extname(entry.name))) {
         const filePath = path.join(dir, entry.name);
+        // If we have a baseline filter, only include post-baseline files
+        if (
+          postBaseline !== null &&
+          !postBaseline.has(path.resolve(filePath))
+        ) {
+          continue;
+        }
         const rel = path.relative(workspacePath, filePath);
         try {
           const content = fs.readFileSync(filePath, "utf-8");

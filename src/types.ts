@@ -202,12 +202,13 @@ export interface VariantConfig {
 export type VariantDefaults = Omit<VariantConfig, "name">;
 
 export interface BenchConfig {
+  name: string;
   agents: AgentConfig[];
   variantDefaults?: VariantDefaults;
   variants: VariantConfig[];
   acceptanceCriteria: string[];
   runCount: number;
   parallel: boolean;
-  runsDir: string;
+  outputDir: string;
   judge: JudgeConfig;
 }

@@ -4,8 +4,8 @@ import type { RunResult, RunSetSummary, StatSummary } from "./types";
 
 // ── Write ─────────────────────────────────────────────────────────────────────
 
-export function writeRun(result: RunResult, runsDir: string): string {
-  const runSetDir = path.join(runsDir, result.runSetId);
+export function writeRun(result: RunResult, outputDir: string): string {
+  const runSetDir = path.join(outputDir, result.runSetId);
   fs.mkdirSync(runSetDir, { recursive: true });
 
   const filePath = path.join(runSetDir, `run-${result.attemptNumber}.json`);
@@ -15,7 +15,7 @@ export function writeRun(result: RunResult, runsDir: string): string {
 
 export function writeSummary(
   results: RunResult[],
-  runsDir: string,
+  outputDir: string,
   runSetId: string,
 ): string {
   if (results.length === 0) {
@@ -58,7 +58,7 @@ export function writeSummary(
     runIds: results.map((r) => r.runId),
   };
 
-  const runSetDir = path.join(runsDir, runSetId);
+  const runSetDir = path.join(outputDir, runSetId);
   fs.mkdirSync(runSetDir, { recursive: true });
 
   const filePath = path.join(runSetDir, "summary.json");
@@ -72,8 +72,11 @@ export function readRun(filePath: string): RunResult {
   return JSON.parse(fs.readFileSync(filePath, "utf-8")) as RunResult;
 }
 
-export function readSummary(runSetId: string, runsDir: string): RunSetSummary {
-  const filePath = path.join(runsDir, runSetId, "summary.json");
+export function readSummary(
+  runSetId: string,
+  outputDir: string,
+): RunSetSummary {
+  const filePath = path.join(outputDir, runSetId, "summary.json");
   if (!fs.existsSync(filePath)) {
     throw new Error(
       `Summary not found for run set "${runSetId}". Did you run \`bench run\` first?`,
@@ -82,14 +85,25 @@ export function readSummary(runSetId: string, runsDir: string): RunSetSummary {
   return JSON.parse(fs.readFileSync(filePath, "utf-8")) as RunSetSummary;
 }
 
-export function listRunSets(runsDir: string): string[] {
-  if (!fs.existsSync(runsDir)) return [];
-  return fs
-    .readdirSync(runsDir, { withFileTypes: true })
-    .filter((e) => e.isDirectory())
-    .map((e) => e.name)
-    .sort()
-    .reverse(); // newest first
+export function listRunSets(outputDir: string): string[] {
+  if (!fs.existsSync(outputDir)) return [];
+  const ids: string[] = [];
+  for (const variantEntry of fs.readdirSync(outputDir, {
+    withFileTypes: true,
+  })) {
+    if (!variantEntry.isDirectory()) continue;
+    const variantDir = path.join(outputDir, variantEntry.name);
+    for (const runEntry of fs.readdirSync(variantDir, {
+      withFileTypes: true,
+    })) {
+      if (!runEntry.isDirectory()) continue;
+      const summaryPath = path.join(variantDir, runEntry.name, "summary.json");
+      if (fs.existsSync(summaryPath)) {
+        ids.push(`${variantEntry.name}/${runEntry.name}`);
+      }
+    }
+  }
+  return ids.sort().reverse(); // newest first
 }
 
 /**
@@ -102,11 +116,11 @@ export function findCompletedRuns(
   agentName: string,
   agentVersion: string,
   minRuns: number,
-  runsDir: string,
+  outputDir: string,
 ): RunSetSummary | undefined {
-  for (const id of listRunSets(runsDir)) {
+  for (const id of listRunSets(outputDir)) {
     try {
-      const summary = readSummary(id, runsDir);
+      const summary = readSummary(id, outputDir);
       if (
         summary.variantName === variantName &&
         summary.agentName === agentName &&
@@ -122,8 +136,8 @@ export function findCompletedRuns(
   return undefined;
 }
 
-export function listRunFiles(runSetId: string, runsDir: string): string[] {
-  const runSetDir = path.join(runsDir, runSetId);
+export function listRunFiles(runSetId: string, outputDir: string): string[] {
+  const runSetDir = path.join(outputDir, runSetId);
   if (!fs.existsSync(runSetDir)) return [];
   return fs
     .readdirSync(runSetDir)
@@ -141,9 +155,9 @@ export function writeAgentLogs(
   attemptNumber: number,
   stdout: string,
   stderr: string,
-  runsDir: string,
+  outputDir: string,
 ): void {
-  const runSetDir = path.join(runsDir, runSetId);
+  const runSetDir = path.join(outputDir, runSetId);
   fs.mkdirSync(runSetDir, { recursive: true });
 
   fs.writeFileSync(
@@ -166,9 +180,9 @@ export function saveWorkspaceFiles(
   runSetId: string,
   attemptNumber: number,
   workspacePath: string,
-  runsDir: string,
+  outputDir: string,
 ): void {
-  const dest = path.join(runsDir, runSetId, `run-${attemptNumber}-workspace`);
+  const dest = path.join(outputDir, runSetId, `run-${attemptNumber}-workspace`);
   copyDirExcludeGit(workspacePath, dest);
 }
 
@@ -194,7 +208,7 @@ export function writeJudgeNotes(
   runSetId: string,
   attemptNumber: number,
   result: RunResult,
-  runsDir: string,
+  outputDir: string,
 ): void {
   const judge = result.scoring.llmJudge;
   if (!judge) return;
@@ -223,7 +237,7 @@ export function writeJudgeNotes(
   ];
 
   const filePath = path.join(
-    runsDir,
+    outputDir,
     runSetId,
     `run-${attemptNumber}-judge.md`,
   );
@@ -234,10 +248,10 @@ export function writeJudgeNotes(
 export function patchRun(
   runSetId: string,
   attemptNumber: number,
-  runsDir: string,
+  outputDir: string,
   patch: Partial<RunResult>,
 ): void {
-  const filePath = path.join(runsDir, runSetId, `run-${attemptNumber}.json`);
+  const filePath = path.join(outputDir, runSetId, `run-${attemptNumber}.json`);
   if (!fs.existsSync(filePath)) {
     throw new Error(`Run file not found: ${filePath}`);
   }

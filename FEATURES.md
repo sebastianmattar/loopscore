@@ -76,7 +76,5 @@ For every variant the following settings can be configure:
 
 # Version 1.9
 
-- [ ] The commands before/after defined in bench.config.yaml are not executed, fix it
-- [ ] Before running a variant batch, check the number of runs for this variant. Only run the remaining ones, skip if already reached or exceeded
-- [ ] Update the status display to show what task we are working on, including the LLM judge.
-- [ ] The linecount baseline should be taken after the variant setup is finished so we do not count skills, requirement.md etc.
+- [x] The directory structure should be refined. It should be <bench>/<benchname>/<variantname>/<run>. The <bench> name can be extracted from the filename, e.g. "bench.config.yaml" -> bench.
+- [x] The judging should only judge files that were created after project setup. We should only look at the files that are relevant for the line count

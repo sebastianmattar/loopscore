@@ -2,7 +2,7 @@ import { execSync } from "child_process";
 import type { TestResult } from "../types";
 
 export function runTests(workspacePath: string, testsCmd: string): TestResult {
-  let output = "";
+  let output: string;
   let exitCode = 0;
 
   try {

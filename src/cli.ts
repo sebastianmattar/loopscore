@@ -22,7 +22,7 @@ import type { AgentConfig, VariantConfig } from "./types";
 
 function makeRunSetId(variantName: string): string {
   const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  return `${ts}-${variantName}`;
+  return `${variantName}/${ts}`;
 }
 
 async function runHealthchecks(agents: AgentConfig[]): Promise<void> {
@@ -56,7 +56,7 @@ async function runAgentWithSpinner(
       agentConfig.name,
       agentVersion,
       runs,
-      config.runsDir,
+      config.outputDir,
     );
     if (existing) {
       console.log(
@@ -69,12 +69,13 @@ async function runAgentWithSpinner(
     }
   }
   const runSetId = makeRunSetId(variant.name);
+  const label = chalk.cyan(variant.name);
 
-  const spinner = ora({ prefixText }).start(`[1/${runs}] running…`);
+  const spinner = ora({ prefixText }).start(`${label} [1/${runs}] running…`);
   let startedAt = Date.now();
   let ticker = setInterval(() => {
     const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
-    spinner.text = `[1/${runs}] running… ${elapsed}s`;
+    spinner.text = `${label} [1/${runs}] running… ${elapsed}s`;
   }, 1000);
 
   const results = await runTask(
@@ -91,28 +92,32 @@ async function runAgentWithSpinner(
           : "";
       spinner.stopAndPersist({
         symbol: chalk.green("✓"),
-        text: `[${attempt}/${total}] done in ${result.metrics.timeMs}ms, +${result.metrics.lineCount} lines${score}`,
+        text: `${label} [${attempt}/${total}] done in ${result.metrics.timeMs}ms, +${result.metrics.lineCount} lines${score}`,
       });
       if (attempt < total) {
-        spinner.start(`[${attempt + 1}/${total}] running…`);
+        spinner.start(`${label} [${attempt + 1}/${total}] running…`);
       }
     },
     (attempt, total) => {
       if (attempt > 1) {
-        spinner.start(`[${attempt}/${total}] running…`);
+        spinner.start(`${label} [${attempt}/${total}] running…`);
         startedAt = Date.now();
         ticker = setInterval(() => {
           const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
-          spinner.text = `[${attempt}/${total}] running… ${elapsed}s`;
+          spinner.text = `${label} [${attempt}/${total}] running… ${elapsed}s`;
         }, 1000);
       }
     },
     variant.name,
+    () => {
+      clearInterval(ticker);
+      spinner.text = `${label} judging…`;
+    },
   );
   clearInterval(ticker);
   spinner.stop();
 
-  const summaryPath = writeSummary(results, config.runsDir, runSetId);
+  const summaryPath = writeSummary(results, config.outputDir, runSetId);
   console.log(chalk.gray(`  Saved: ${summaryPath}`));
   console.log(`  Run set ID: ${chalk.cyan(runSetId)}`);
 }
@@ -162,10 +167,13 @@ async function runAgentParallel(
     },
     undefined,
     variantName,
+    () => {
+      console.log(chalk.gray(`  ⚖ ${label} judging…`));
+    },
   );
 
   const totalElapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-  const summaryPath = writeSummary(results, config.runsDir, runSetId);
+  const summaryPath = writeSummary(results, config.outputDir, runSetId);
   console.log(
     chalk.gray(
       `    ${label} finished in ${totalElapsed}s — saved: ${summaryPath}`,
@@ -180,30 +188,23 @@ export function buildCLI(): Command {
     .name("loopscore")
     .description("Benchmark agentic coding AIs against coding tasks")
     .version("0.1.0")
-    .option(
+    .requiredOption(
       "-c, --config <path>",
-      "Path to config file (default: bench.config.json)",
+      "Path to config file (e.g. mybench.config.yaml)",
     );
 
   // ── bench run-all ──────────────────────────────────────────────────────────
   program
-    .command("run-all")
-    .description("Run all variants")
-    .option(
-      "-a, --agent <name>",
-      "Agent name (only used in task mode, no variants)",
-    )
-    .option("-n, --runs <number>", "Number of runs per agent per task")
+    .command("run")
+    .description("Run a benchmark")
     .option(
       "-f, --force",
       "Run even if enough runs already exist for this configuration",
     )
     .action(
       async (opts: { agent?: string; runs?: string; force?: boolean }) => {
-        const config = loadConfig(program.opts().config as string | undefined);
-        const runs = opts.runs
-          ? Math.max(1, parseInt(opts.runs, 10))
-          : config.runCount;
+        const config = loadConfig(program.opts().config as string);
+        const runs = config.runCount ?? 3;
         const force = opts.force ?? false;
 
         // Variant mode — resolve agent configs and deduplicate for healthchecks
@@ -218,7 +219,7 @@ export function buildCLI(): Command {
         });
         await runHealthchecks(uniqueAgentConfigs);
 
-        const parallel = config.parallel && config.variants.length > 1;
+        const parallel = config.parallel ?? true;
         console.log(
           chalk.bold(
             `\nRunning ${config.variants.length} variant(s), ${runs} run(s) each${parallel ? " (parallel)" : ""}…`,
@@ -266,31 +267,22 @@ export function buildCLI(): Command {
 
   // ── bench report ──────────────────────────────────────────────────────────
   program
-    .command("report [run-set-id]")
+    .command("report")
     .description(
       "Show metrics and scores for a run set, or all run sets with --all",
     )
-    .option("-a, --all", "Show reports for all run sets")
-    .action((runSetId: string | undefined, opts: { all?: boolean }) => {
-      const config = loadConfig(program.opts().config as string | undefined);
-      if (opts.all) {
-        const ids = listRunSets(config.runsDir);
-        if (ids.length === 0) {
-          console.log(chalk.gray("No run sets found."));
-          return;
-        }
-        for (const id of ids) {
-          const summary = readSummary(id, config.runsDir);
-          console.log(formatReport(summary));
-        }
+    .action(() => {
+      const config = loadConfig(program.opts().config as string);
+
+      const ids = listRunSets(config.outputDir);
+      if (ids.length === 0) {
+        console.log(chalk.gray("No run sets found."));
         return;
       }
-      if (!runSetId) {
-        console.error(chalk.red("Provide a <run-set-id> or use --all."));
-        process.exit(1);
+      for (const id of ids) {
+        const summary = readSummary(id, config.outputDir);
+        console.log(formatReport(summary));
       }
-      const summary = readSummary(runSetId, config.runsDir);
-      console.log(formatReport(summary));
     });
 
   // ── bench scoreboard ──────────────────────────────────────────────────────
@@ -299,9 +291,9 @@ export function buildCLI(): Command {
     .description("Show a ranked overview of all run sets")
     .option("-m, --markdown", "Output as Markdown instead of a terminal table")
     .action((opts: { markdown?: boolean }) => {
-      const config = loadConfig(program.opts().config as string | undefined);
-      const ids = listRunSets(config.runsDir);
-      const summaries = ids.map((id) => readSummary(id, config.runsDir));
+      const config = loadConfig(program.opts().config as string);
+      const ids = listRunSets(config.outputDir);
+      const summaries = ids.map((id) => readSummary(id, config.outputDir));
       console.log(
         opts.markdown
           ? formatScoreboardMarkdown(summaries)
@@ -316,13 +308,13 @@ export function buildCLI(): Command {
     .command("runs")
     .description("List all run sets")
     .action(() => {
-      const config = loadConfig(program.opts().config as string | undefined);
-      const runSets = listRunSets(config.runsDir);
+      const config = loadConfig(program.opts().config as string);
+      const runSets = listRunSets(config.outputDir);
       if (runSets.length === 0) {
         console.log(chalk.gray("No run sets found."));
         return;
       }
-      console.log(chalk.bold(`\nRun sets in ${config.runsDir}:\n`));
+      console.log(chalk.bold(`\nRun sets in ${config.outputDir}:\n`));
       for (const id of runSets) {
         console.log(`  ${chalk.cyan(id)}`);
       }
@@ -333,7 +325,7 @@ export function buildCLI(): Command {
     .command("variants")
     .description("List all variants defined in the config")
     .action(() => {
-      const config = loadConfig(program.opts().config as string | undefined);
+      const config = loadConfig(program.opts().config as string);
       if (!config.variants || config.variants.length === 0) {
         console.log(chalk.gray("No variants configured."));
         return;
