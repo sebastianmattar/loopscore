@@ -16,7 +16,6 @@ const CommandsConfigSchema = z.object({
 
 const SetupConfigSchema = z.object({
   files: z.record(z.string(), z.string()).optional(),
-  query: z.string(),
   commands: CommandsConfigSchema.optional(),
 });
 
@@ -38,7 +37,7 @@ const VariantDefaultsSchema = z.object({
   setup: SetupConfigSchema.optional(),
   costPerMillionTokens: z.number().optional(),
   commands: CommandsConfigSchema.optional(),
-  acceptanceCriteria: z.array(z.string()).optional(),
+  query: z.array(z.string()).optional(),
 });
 
 const VariantConfigSchema = z.object({
@@ -51,7 +50,7 @@ const VariantConfigSchema = z.object({
   setup: SetupConfigSchema.optional(),
   costPerMillionTokens: z.number().optional(),
   commands: CommandsConfigSchema.optional(),
-  acceptanceCriteria: z.array(z.string()).optional(),
+  query: z.array(z.string()).optional(),
 });
 
 const JudgeConfigSchema = z.object({
@@ -64,7 +63,7 @@ const BenchConfigSchema = z.object({
   variantDefaults: VariantDefaultsSchema.optional(),
   variants: z.array(VariantConfigSchema),
   acceptanceCriteria: z.array(z.string()),
-  defaultRuns: z.number().int().min(1).default(3),
+  runCount: z.number().int().min(1).default(3),
   parallel: z.boolean().default(true),
   runsDir: z.string().default("./runs"),
   judge: JudgeConfigSchema,

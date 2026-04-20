@@ -203,7 +203,7 @@ export function buildCLI(): Command {
         const config = loadConfig(program.opts().config as string | undefined);
         const runs = opts.runs
           ? Math.max(1, parseInt(opts.runs, 10))
-          : config.defaultRuns;
+          : config.runCount;
         const force = opts.force ?? false;
 
         // Variant mode — resolve agent configs and deduplicate for healthchecks

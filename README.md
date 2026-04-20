@@ -64,7 +64,7 @@ node dist/index.js <command>
     { "name": "copilot-hello-world", "agent": "copilot" },
     { "name": "gemini-hello-world", "agent": "gemini" }
   ],
-  "defaultRuns": 1,
+  "runCount": 1,
   "parallel": true,
   "runsDir": "./runs",
   "tasksDir": "./tasks",
@@ -206,12 +206,12 @@ loopscore run hello-world-api --force          # ignore dedup check
 loopscore run hello-world-api --config path/to/bench.config.json
 ```
 
-| Flag                  | Default                   | Description                              |
-| --------------------- | ------------------------- | ---------------------------------------- |
-| `-a, --agent <name>`  | all configured agents     | Run with a single specific agent         |
-| `-n, --runs <number>` | `defaultRuns` from config | Number of attempts per agent             |
-| `-f, --force`         | off                       | Run even if enough results already exist |
-| `-c, --config <path>` | `./bench.config.json`     | Path to config file (global flag)        |
+| Flag                  | Default                | Description                              |
+| --------------------- | ---------------------- | ---------------------------------------- |
+| `-a, --agent <name>`  | all configured agents  | Run with a single specific agent         |
+| `-n, --runs <number>` | `runCount` from config | Number of attempts per agent             |
+| `-f, --force`         | off                    | Run even if enough results already exist |
+| `-c, --config <path>` | `./bench.config.json`  | Path to config file (global flag)        |
 
 ### `loopscore run-all`
 

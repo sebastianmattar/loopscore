@@ -206,7 +206,7 @@ export interface BenchConfig {
   variantDefaults?: VariantDefaults;
   variants: VariantConfig[];
   acceptanceCriteria: string[];
-  defaultRuns: number;
+  runCount: number;
   parallel: boolean;
   runsDir: string;
   judge: JudgeConfig;

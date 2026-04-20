@@ -8,7 +8,7 @@
 # Version 1.2
 
 - [x] Add agent logfiles to run directory for better diagnostics
-- [x] The defaultRuns config does not seem to make a difference
+- [x] The runCount config does not seem to make a difference
 - [x] Instead of defining all agents in a config file we should put them in separate files
 - [x] Add a way to approximate costs per agent
 - [x] This project should be named "loopscore"
@@ -70,6 +70,13 @@ For every variant the following settings can be configure:
 
 # Version 1.8
 
-- [ ] Migrate bench.config.json reading mechanism to YAML. Also convert the existing bench.config.json file to the new format
-- [ ] Implement the mechanism that actually creates the files defined in the SetupConfig.files property
-- [ ] The prompt and the acceptance_criteria should also be configurable in the bench.config
+- [x] Migrate bench.config.json reading mechanism to YAML. Also convert the existing bench.config.json file to the new format
+- [x] Implement the mechanism that actually creates the files defined in the SetupConfig.files property
+- [x] The prompt and the acceptance_criteria should also be configurable in the bench.config
+
+# Version 1.9
+
+- [ ] The commands before/after defined in bench.config.yaml are not executed, fix it
+- [ ] Before running a variant batch, check the number of runs for this variant. Only run the remaining ones, skip if already reached or exceeded
+- [ ] Update the status display to show what task we are working on, including the LLM judge.
+- [ ] The linecount baseline should be taken after the variant setup is finished so we do not count skills, requirement.md etc.

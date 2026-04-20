@@ -1,53 +1,51 @@
-# V1.8 Implementation Plan
+# V1.9 Implementation Plan
 
-## 1. YAML config support
+## 1. Fix before/after commands not being executed
 
-**Goal:** Replace JSON with YAML as the primary config format.
+**Root cause:** `runOnce` in `runner/index.ts` executes `variant.commands?.before/after` directly, but `variantDefaults.commands` is never merged in — so commands defined only in `variantDefaults` are silently ignored.
 
-- [x] Add `yaml` npm package (`pnpm add yaml`)
-- [x] Update `loadConfig` in `config.ts`:
-  - [x] Parse `.yaml`/`.yml` files with `yaml.parse()` instead of `JSON.parse` + `stripJsonComments`
-  - [x] Keep JSON support for backward compatibility (detect by file extension)
-  - [x] Remove `strip-json-comments` dependency once JSON is no longer primary
-- [x] Convert `bench.config.json` → `bench.config.yaml` (same structure, YAML syntax)
-- [x] Update README examples
+**Fix:**
+- [ ] In `runOnce`, compute merged commands before running them:
+  ```ts
+  const before = [
+    ...(benchConfig.variantDefaults?.commands?.before ?? []),
+    ...(variant.commands?.before ?? []),
+  ];
+  const after = [
+    ...(benchConfig.variantDefaults?.commands?.after ?? []),
+    ...(variant.commands?.after ?? []),
+  ];
+  ```
+- [ ] Replace steps 2 and 4 to iterate `before` / `after` instead of `variant.commands?.before/after`
 
-## 2. Write `SetupConfig.files` to workspace
+## 2. Only run the remaining attempts, skip if quota reached
 
-**Goal:** Actually materialise the `files` map from `SetupConfig` as files in the temp workspace.
+**Root cause:** `runAgentWithSpinner` / `runAgentParallel` check completed runs once before the whole batch and skip all runs. If e.g. 1 out of 3 runs already exists, it still skips everything instead of running the remaining 2.
 
-The `createWorkspace` function in `runner/workspace.ts` has a comment about writing setup files but does nothing.
+**Fix:**
+- [ ] In `runTask` (or at the top of `runOnce`), before each attempt check how many runs already exist for `(variantName, agentName, agentVersion)` in `runsDir`
+- [ ] Calculate `remaining = requested - existingCount`; skip the loop entirely if `remaining <= 0`, otherwise only execute `remaining` iterations
+- [ ] Remove the pre-batch skip check in `runAgentWithSpinner` and `runAgentParallel` (or keep it only as a fast-path when `remaining === 0`)
+- [ ] Adjust the attempt numbering so new runs are numbered `existingCount + 1`, `existingCount + 2`, etc.
 
-- [x] Change `createWorkspace(variant)` signature to also accept the resolved `SetupConfig` (merged from `variantDefaults.setup` + `variant.setup`)
-- [x] After git init, iterate `setup.files` and write each entry as `fs.writeFileSync(path.join(workspacePath, filename), content)`
-- [x] Create parent directories as needed (`fs.mkdirSync(..., { recursive: true })`)
-- [x] Update call sites in `runner/index.ts` to pass the merged setup
+## 3. Update status display to show current task and LLM judge phase
 
-## 3. Inline prompt and acceptance criteria
+**Root cause:** The spinner only shows `[N/M] running…` with elapsed time; it does not show which variant/task is being processed, and there is no indication when the LLM judge is running (which can take many seconds).
 
-**Goal:** Allow `prompt` and `acceptance_criteria` to live in `bench.config.yaml` rather than separate task markdown files.
+**Fix:**
+- [ ] In `runAgentWithSpinner`, include the variant name in the spinner prefix or text, e.g. `[variant] [1/3] agent running… 12s`
+- [ ] In `runOnce` (or `scoreRun`), emit a progress callback / event when judging starts so the caller can update the spinner text to `[variant] [1/3] judging…`
+  - Add an optional `onJudgeStart?: () => void` callback to `RunOptions`
+  - Call it just before `scoreRun` in `runOnce`
+  - Wire it up in `runAgentWithSpinner` to update the spinner text
 
-**Current gap:** `setup.query` is the prompt and `benchConfig.acceptanceCriteria` are the criteria — both exist in the type system but neither is wired up end-to-end.
+## 4. Take linecount baseline after variant setup
 
-### 3a. Write `requirements.md` to workspace
+**Root cause:** The `loopscore-baseline` git tag is created in `createWorkspace` **before** setup files (`setup.files`, `requirements.md`) are written to the workspace. Those files therefore appear in `git diff loopscore-baseline HEAD` and inflate the line count.
 
-- [x] In `createWorkspace` (same pass as feature 2), write `setup.query` as `requirements.md`
-
-### 3b. Expand template variables in agent args
-
-- [x] In `runner/subprocess.ts` (or `base.ts`), before spawning, replace in every arg:
-  - [x] `{requirementsContent}` → value of `setup.query`
-  - [x] `{requirementsFile}` → `path.join(workspacePath, "requirements.md")`
-  - [x] `{workspacePath}` → `workspacePath`
-- [x] Pass the needed values through from `runOnce`
-
-### 3c. Surface `acceptanceCriteria` from variant/defaults
-
-- [x] Add `acceptanceCriteria` to `VariantConfig` and `VariantDefaults` (types + Zod schemas) as `string[]` optional
-- [x] In `runner/index.ts`, resolve effective criteria: `variant.acceptanceCriteria ?? defaults?.acceptanceCriteria ?? benchConfig.acceptanceCriteria`
-- [x] Pass resolved criteria alongside `benchConfig` into `scoreRun` / LLM judge (or mutate a local copy of `benchConfig`)
-
-### 3d. Update `bench.config.yaml`
-
-- [x] Move the `hello-world-api` task's `prompt` and `acceptance_criteria` inline into `variantDefaults` in the converted YAML config
-- [x] Keep `tasks/hello-world-api.md` as reference; it is no longer required at runtime
+**Fix:**
+- [ ] In `createWorkspace` (`runner/workspace.ts`), move the `git tag loopscore-baseline` call to **after** all setup files have been written and staged:
+  1. Write all setup files (requirements.md, setup.files entries) — already done
+  2. `git add -A && git commit -m "setup"` to commit the setup files
+  3. `git tag loopscore-baseline` — tag this point as the baseline
+- [ ] Update the comment in `metrics.ts` (`measureLineCount`) to reflect that the baseline now includes setup files
