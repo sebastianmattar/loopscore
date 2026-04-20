@@ -32,6 +32,12 @@ export interface SetupConfig {
   mcpJson?: string;
 }
 
+/** Shell commands to run in the workspace before/after the agent. */
+export interface CommandsConfig {
+  before?: string[];
+  after?: string[];
+}
+
 export interface AgentConfig {
   name: string;
   /** Executable name, e.g. "gh" or "kiro" */
@@ -48,6 +54,8 @@ export interface AgentConfig {
   setup?: SetupConfig;
   /** USD cost per 1 million tokens, used for cost estimation. */
   costPerMillionTokens?: number;
+  /** Shell commands to run in the workspace before/after the agent. */
+  commands?: CommandsConfig;
 }
 
 /** Interface that every agent adapter must implement */
@@ -209,12 +217,20 @@ export interface VariantDefaults {
   agent?: string;
   /** Default task ID */
   task?: string;
+  /** Override the agent executable */
+  cmd?: string;
+  /** Override the agent CLI args */
+  args?: string[];
   /** Default model override */
   model?: string;
   /** Default model_params (shallow-merged, variant wins on key conflicts) */
   model_params?: Record<string, unknown>;
   /** Default setup config (shallow-merged, variant wins on key conflicts) */
   setup?: SetupConfig;
+  /** USD cost per 1 million tokens */
+  costPerMillionTokens?: number;
+  /** Shell commands to run in workspace before/after the agent */
+  commands?: CommandsConfig;
 }
 
 /**
@@ -223,21 +239,28 @@ export interface VariantDefaults {
  */
 export interface VariantConfig {
   name: string;
-  /** Agent name — must exist in agentsDir or the agents list */
+  /** Agent name — must match a built-in adapter or an entry in the agents list */
   agent?: string;
   /** Task ID — looked up from tasksDir */
   task?: string;
+  /** Override the agent executable */
+  cmd?: string;
+  /** Override the agent CLI args */
+  args?: string[];
   /** Overrides the agent's default model */
   model?: string;
   /** Merged on top of the agent's model_params */
   model_params?: Record<string, unknown>;
   /** Overrides / extends the agent's setup config */
   setup?: SetupConfig;
+  /** USD cost per 1 million tokens */
+  costPerMillionTokens?: number;
+  /** Shell commands to run in workspace before/after the agent */
+  commands?: CommandsConfig;
 }
 
 export interface BenchConfig {
   agents: AgentConfig[];
-  agentsDir?: string;
   variantDefaults?: VariantDefaults;
   variants?: VariantConfig[];
   defaultRuns: number;

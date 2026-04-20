@@ -65,5 +65,5 @@ For every variant the following settings can be configure:
 
 # Version 1.7
 
-- [ ] Extend the bench.config.json so agent parameters can optionally be overridden there. Get rid of the ./agents directory and the corresponding "agentsDir" configuration
-- [ ] Extend the bench.config.json and allow execution of shell commands for each variant (also support variantDefaults for this)
+- [x] Extend the bench.config.json so agent parameters can optionally be overridden there. Get rid of the ./agents directory and the corresponding "agentsDir" configuration
+- [x] Extend the bench.config.json and allow execution of shell commands for each variant (also support variantDefaults for this)

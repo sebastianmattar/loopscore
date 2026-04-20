@@ -263,14 +263,17 @@ export function buildCLI(): Command {
         const force = opts.force ?? false;
 
         if (config.variants && config.variants.length > 0) {
-          // Variant mode
-          const uniqueAgentNames = [
-            ...new Set(config.variants.map((v) => v.agent)),
-          ];
-          const agentsNeeded = config.agents.filter((a) =>
-            uniqueAgentNames.includes(a.name),
+          // Variant mode — resolve agent configs and deduplicate for healthchecks
+          const allVariantConfigs = config.variants.map((v) =>
+            resolveVariantAgentConfig(v, config.agents, config.variantDefaults),
           );
-          await runHealthchecks(agentsNeeded);
+          const seenNames = new Set<string>();
+          const uniqueAgentConfigs = allVariantConfigs.filter((a) => {
+            if (seenNames.has(a.name)) return false;
+            seenNames.add(a.name);
+            return true;
+          });
+          await runHealthchecks(uniqueAgentConfigs);
 
           const parallel = config.parallel && config.variants.length > 1;
           console.log(

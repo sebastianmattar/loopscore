@@ -1,13 +1,20 @@
 {
-    "agentsDir": "./agents",
     "variantDefaults": {
-        "task": "hello-world-api"
+        "task": "hello-world-api",
+        "commands": {
+            "before": [
+                "touch test"
+            ],
+            "after": [
+                "touch test2"
+            ]
+        }
     },
     "variants": [
-        {
+        /*         {
             "name": "copilot-hello-world",
             "agent": "copilot"
-        },
+        }, */
         {
             "name": "gemini-hello-world",
             "agent": "gemini"

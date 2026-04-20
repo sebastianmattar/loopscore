@@ -57,32 +57,71 @@ node dist/index.js <command>
 
 ```json
 {
-  "agents": ["gh-copilot"],
-  "agentsDir": "./agents",
-  "defaultRuns": 3,
+  "variantDefaults": {
+    "task": "hello-world-api"
+  },
+  "variants": [
+    { "name": "copilot-hello-world", "agent": "copilot" },
+    { "name": "gemini-hello-world", "agent": "gemini" }
+  ],
+  "defaultRuns": 1,
+  "parallel": true,
   "runsDir": "./runs",
   "tasksDir": "./tasks",
-  "judge": {
-    "provider": "copilot"
-  }
+  "judge": { "provider": "copilot" }
 }
 ```
 
-**`agents`** — array of agent names (strings) referencing files in `agentsDir`, or inline agent objects:
+Built-in adapters (no extra config needed): `copilot`, `gemini`, `claude`, `kiro`.
+
+### Variants
+
+Each variant combines an agent, a task, and optional overrides. `variantDefaults` applies to all variants unless overridden.
 
 ```json
 {
-  "name": "my-agent",
-  "cmd": "my-agent-cli",
-  "args": ["-p", "{requirementsContent}"],
-  "costPerMillionTokens": 3.0,
-  "setup": {
-    "skillsDir": "./setups/my-agent/skills",
-    "agentsMd": "./setups/my-agent/agents.md",
-    "mcpJson": "./setups/my-agent/mcp.json"
-  }
+  "variantDefaults": {
+    "task": "hello-world-api",
+    "commands": { "before": ["npm install"] }
+  },
+  "variants": [
+    {
+      "name": "copilot-gpt4o",
+      "agent": "copilot",
+      "model": "gpt-4o"
+    },
+    {
+      "name": "claude-custom",
+      "agent": "claude",
+      "cmd": "claude",
+      "args": [
+        "-p",
+        "{requirementsContent}",
+        "--allowedTools",
+        "all",
+        "--model",
+        "claude-opus-4-5"
+      ],
+      "commands": { "after": ["npm test"] }
+    }
+  ]
 }
 ```
+
+**Variant / variantDefaults fields:**
+
+| Field                  | Description                                               |
+| ---------------------- | --------------------------------------------------------- |
+| `agent`                | Agent name (built-in or in `agents` list)                 |
+| `task`                 | Task ID to run                                            |
+| `cmd`                  | Override the agent executable                             |
+| `args`                 | Override the agent CLI args (supports template variables) |
+| `model`                | Override the agent's model                                |
+| `model_params`         | Shallow-merged on top of the agent's `model_params`       |
+| `setup`                | Override workspace setup (skills, agents.md, mcp.json)    |
+| `costPerMillionTokens` | USD cost per 1M tokens for cost estimation                |
+| `commands.before`      | Shell commands run in workspace **before** the agent      |
+| `commands.after`       | Shell commands run in workspace **after** the agent       |
 
 **Agent arg template variables:**
 
@@ -95,29 +134,27 @@ node dist/index.js <command>
 
 **Judge providers:** `copilot` (default), `openai` (requires `OPENAI_API_KEY`), `anthropic` (requires `ANTHROPIC_API_KEY`).
 
-## Agent Files
+### Custom Agents
 
-Agent definitions live in `agents/*.agent.json`:
+For agents not in the built-in list, define them inline in the `agents` array:
 
 ```json
 {
-  "name": "gh-copilot",
-  "cmd": "copilot",
-  "args": [
-    "-p",
-    "{requirementsContent}",
-    "--allow-all-tools",
-    "--allow-all-paths",
-    "--output-format",
-    "json",
-    "--config-dir",
-    "{workspacePath}"
-  ],
-  "model_params": {}
+  "agents": [
+    {
+      "name": "my-agent",
+      "cmd": "my-agent-cli",
+      "args": ["-p", "{requirementsContent}", "--yes"],
+      "costPerMillionTokens": 3.0,
+      "setup": {
+        "skillsDir": "./setups/my-agent/skills",
+        "agentsMd": "./setups/my-agent/agents.md",
+        "mcpJson": "./setups/my-agent/mcp.json"
+      }
+    }
+  ]
 }
 ```
-
-Built-in adapters: `gh-copilot`, `gemini`, `claude`, `kiro`. Any agent with `cmd` + `args` in its config file works without a dedicated adapter.
 
 ## Defining Tasks
 
@@ -263,21 +300,18 @@ runs/
 
 ## Adding a New Agent
 
-1. Create `agents/my-agent.agent.json`:
+For built-in healthcheck/invocation logic, add `src/agents/my-agent.ts` and register it in `src/agents/index.ts`.
+
+For a quick custom agent with no special logic, add it inline in `bench.config.json`:
 
 ```json
 {
-  "name": "my-agent",
-  "cmd": "my-agent-cli",
-  "args": ["-p", "{requirementsContent}", "--yes"],
-  "model_params": {}
+  "agents": [
+    {
+      "name": "my-agent",
+      "cmd": "my-agent-cli",
+      "args": ["-p", "{requirementsContent}", "--yes"]
+    }
+  ]
 }
 ```
-
-2. Reference it in `bench.config.json`:
-
-```json
-{ "agents": ["my-agent"] }
-```
-
-For custom healthcheck or invocation logic, add `src/agents/my-agent.ts` and register it in `src/agents/index.ts`.

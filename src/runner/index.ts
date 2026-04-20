@@ -1,3 +1,4 @@
+import { execSync } from "child_process";
 import crypto from "crypto";
 import { getAgentVersion } from "../agents/base.js";
 import { getAdapter } from "../agents/index.js";
@@ -114,12 +115,22 @@ export async function runOnce(
   // 1. Create isolated workspace
   const workspacePath = createWorkspace(task, agentConfig.setup);
 
-  // 2. Invoke agent
+  // 2. Run before-commands in workspace
+  for (const cmd of agentConfig.commands?.before ?? []) {
+    execSync(cmd, { cwd: workspacePath, stdio: "pipe" });
+  }
+
+  // 3. Invoke agent
   const adapter = getAdapter(agentConfig);
   const agentVersion = getAgentVersion(agentConfig);
   const invokeResult = await adapter.invoke(workspacePath, task, agentConfig);
 
-  // 3. Collect metrics
+  // 4. Run after-commands in workspace
+  for (const cmd of agentConfig.commands?.after ?? []) {
+    execSync(cmd, { cwd: workspacePath, stdio: "pipe" });
+  }
+
+  // 5. Collect metrics
   const metrics = await collectMetrics(
     workspacePath,
     invokeResult.stdout,
@@ -128,7 +139,7 @@ export async function runOnce(
     agentConfig.costPerMillionTokens,
   );
 
-  // 4. Score the output
+  // 6. Score the output
   const scoring = await scoreRun(
     workspacePath,
     task,
@@ -157,7 +168,7 @@ export async function runOnce(
     workspacePath,
   };
 
-  // 5. Persist
+  // 7. Persist
   writeRun(result, benchConfig.runsDir);
   writeAgentLogs(
     runSetId,

@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import stripJsonComments from "strip-json-comments";
 import { z } from "zod";
 import type {
   AgentConfig,
@@ -14,6 +15,11 @@ const SetupConfigSchema = z.object({
   mcpJson: z.string().optional(),
 });
 
+const CommandsConfigSchema = z.object({
+  before: z.array(z.string()).optional(),
+  after: z.array(z.string()).optional(),
+});
+
 const AgentConfigSchema = z.object({
   name: z.string(),
   cmd: z.string(),
@@ -22,23 +28,32 @@ const AgentConfigSchema = z.object({
   model_params: z.record(z.string(), z.unknown()).optional(),
   setup: SetupConfigSchema.optional(),
   costPerMillionTokens: z.number().optional(),
+  commands: CommandsConfigSchema.optional(),
 });
 
 const VariantDefaultsSchema = z.object({
   agent: z.string().optional(),
   task: z.string().optional(),
+  cmd: z.string().optional(),
+  args: z.array(z.string()).optional(),
   model: z.string().optional(),
   model_params: z.record(z.string(), z.unknown()).optional(),
   setup: SetupConfigSchema.optional(),
+  costPerMillionTokens: z.number().optional(),
+  commands: CommandsConfigSchema.optional(),
 });
 
 const VariantConfigSchema = z.object({
   name: z.string(),
   agent: z.string().optional(),
   task: z.string().optional(),
+  cmd: z.string().optional(),
+  args: z.array(z.string()).optional(),
   model: z.string().optional(),
   model_params: z.record(z.string(), z.unknown()).optional(),
   setup: SetupConfigSchema.optional(),
+  costPerMillionTokens: z.number().optional(),
+  commands: CommandsConfigSchema.optional(),
 });
 
 const JudgeConfigSchema = z.object({
@@ -49,7 +64,6 @@ const JudgeConfigSchema = z.object({
 
 const BenchConfigSchema = z.object({
   agents: z.array(z.union([AgentConfigSchema, z.string()])).default([]),
-  agentsDir: z.string().optional(),
   variantDefaults: VariantDefaultsSchema.optional(),
   variants: z.array(VariantConfigSchema).optional(),
   defaultRuns: z.number().int().min(1).default(3),
@@ -76,79 +90,27 @@ export function loadConfig(configPath?: string): BenchConfig {
     return DEFAULT_CONFIG;
   }
 
-  const raw = JSON.parse(fs.readFileSync(resolvedPath, "utf-8"));
+  const raw = JSON.parse(
+    stripJsonComments(fs.readFileSync(resolvedPath, "utf-8")),
+  );
   const parsed = BenchConfigSchema.parse(raw);
 
   // Resolve relative paths relative to the config file directory
   const configDir = path.dirname(resolvedPath);
-  const resolvedAgentsDir = parsed.agentsDir
-    ? path.resolve(configDir, parsed.agentsDir)
-    : null;
 
-  // Separate inline agent objects from name-references (strings)
+  // Only keep inline agent objects (string name-references are no longer supported)
   const inlineAgents = (
     parsed.agents as (z.infer<typeof AgentConfigSchema> | string)[]
   ).filter(
     (a): a is z.infer<typeof AgentConfigSchema> => typeof a === "object",
   );
-  const nameRefs = (
-    parsed.agents as (z.infer<typeof AgentConfigSchema> | string)[]
-  ).filter((a): a is string => typeof a === "string");
-
-  // When variants are defined and no explicit agents/nameRefs are listed,
-  // load all agents from agentsDir automatically so variants can reference them.
-  const autoLoad =
-    parsed.variants && parsed.variants.length > 0 && parsed.agents.length === 0;
-
-  // Load agents from agentsDir — filtered to nameRefs when any are present,
-  // or all agents when in auto-load mode.
-  const agentsFromDir = loadAgentsFromDir(
-    resolvedAgentsDir,
-    autoLoad ? [] : nameRefs,
-  );
 
   return {
     ...parsed,
-    agents: [...inlineAgents, ...agentsFromDir],
+    agents: inlineAgents,
     runsDir: path.resolve(configDir, parsed.runsDir),
     tasksDir: path.resolve(configDir, parsed.tasksDir),
   };
-}
-
-/**
- * Loads agent definitions from agentsDir.
- * When nameRefs is non-empty, only loads agents whose names match the list.
- * When nameRefs is empty, loads all *.agent.json files in the directory.
- */
-function loadAgentsFromDir(
-  agentsDir: string | null,
-  nameRefs: string[],
-): BenchConfig["agents"] {
-  if (!agentsDir || !fs.existsSync(agentsDir)) return [];
-  const files = fs
-    .readdirSync(agentsDir)
-    .filter((f) => f.endsWith(".agent.json"))
-    .sort();
-
-  const all = files.map((f) => {
-    const filePath = path.join(agentsDir, f);
-    const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-    return AgentConfigSchema.parse(raw);
-  });
-
-  if (nameRefs.length === 0) return all;
-
-  // Filter to only the referenced names, in the order they were listed
-  return nameRefs.map((name) => {
-    const found = all.find((a) => a.name === name);
-    if (!found) {
-      throw new Error(
-        `Agent "${name}" not found in agentsDir "${agentsDir}". ` +
-          `Available: ${all.map((a) => a.name).join(", ")}`,
-      );
-    }
-    return found;
-  });
 }
 
 /**
@@ -156,7 +118,7 @@ function loadAgentsFromDir(
  * producing the effective AgentConfig to use when running the variant.
  *
  * Resolution order (later wins):
- *   base agent config → variantDefaults → variant's own settings
+ *   base agent config (or built-in defaults) → variantDefaults → variant's own settings
  */
 export function resolveVariantAgentConfig(
   variant: VariantConfig,
@@ -169,16 +131,22 @@ export function resolveVariantAgentConfig(
       `Variant "${variant.name}": no agent specified and no variantDefaults.agent set.`,
     );
   }
-  const base = agents.find((a) => a.name === agentName);
-  if (!base) {
-    throw new Error(
-      `Variant "${variant.name}": agent "${agentName}" not found. ` +
-        `Available: ${agents.map((a) => a.name).join(", ")}`,
-    );
-  }
+
+  // Use explicit agent config if defined; otherwise fall back to built-in adapter
+  // (cmd defaults to the agent name, args left unset so the adapter uses its defaults)
+  const base: AgentConfig = agents.find((a) => a.name === agentName) ?? {
+    name: agentName,
+    cmd: agentName,
+  };
 
   // Apply defaults on top of base, then variant's own settings on top
+  const effectiveCmd = variant.cmd ?? defaults?.cmd ?? base.cmd;
+  const effectiveArgs = variant.args ?? defaults?.args ?? base.args;
   const effectiveModel = variant.model ?? defaults?.model ?? base.model;
+  const effectiveCost =
+    variant.costPerMillionTokens ??
+    defaults?.costPerMillionTokens ??
+    base.costPerMillionTokens;
   const effectiveModelParams = {
     ...base.model_params,
     ...defaults?.model_params,
@@ -189,14 +157,27 @@ export function resolveVariantAgentConfig(
     ...defaults?.setup,
     ...variant.setup,
   };
+  const effectiveCommands = {
+    ...base.commands,
+    ...defaults?.commands,
+    ...variant.commands,
+  };
 
   return {
     ...base,
+    cmd: effectiveCmd,
+    ...(effectiveArgs !== undefined ? { args: effectiveArgs } : {}),
     ...(effectiveModel !== undefined ? { model: effectiveModel } : {}),
+    ...(effectiveCost !== undefined
+      ? { costPerMillionTokens: effectiveCost }
+      : {}),
     model_params:
       Object.keys(effectiveModelParams).length > 0
         ? effectiveModelParams
         : base.model_params,
     setup: Object.keys(effectiveSetup).length > 0 ? effectiveSetup : base.setup,
+    ...(Object.keys(effectiveCommands).length > 0
+      ? { commands: effectiveCommands }
+      : {}),
   };
 }
