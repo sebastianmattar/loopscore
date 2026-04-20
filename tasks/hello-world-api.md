@@ -9,8 +9,6 @@ prompt: |
     - POST /items          → creates a new item (body: { name: string }), returns created item with id
     - GET  /items/:id      → returns a single item by id, 404 if not found
   Items should be stored in-memory. Include a README with usage instructions.
-model_params:
-  temperature: 0.2
 acceptance_criteria:
   - 'GET /health returns 200 with {"status":"ok"}'
   - GET /items returns an array (initially empty)
@@ -18,9 +16,6 @@ acceptance_criteria:
   - GET /items/:id returns the correct item or 404
   - Code compiles and runs with ts-node or tsx
   - A README.md is present with usage instructions
-scoring:
-  methods:
-    - llm-judge
 ---
 
 ## Additional Context

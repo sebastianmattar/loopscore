@@ -9,7 +9,7 @@ export function formatReport(summary: RunSetSummary): string {
 
   lines.push(
     chalk.bold(`\n  Run Set: ${summary.runSetId}`),
-    `  Task:    ${summary.taskId}`,
+    `  Variant:    ${summary.variantName}`,
     `  Agent:   ${summary.agentName}`,
     `  Runs:    ${summary.totalRuns}`,
     `  At:      ${summary.completedAt}`,
@@ -69,7 +69,7 @@ export function formatCompare(summaries: RunSetSummary[]): string {
   const table = new Table({
     head: [
       chalk.cyan("Metric"),
-      ...summaries.map((s) => chalk.cyan(`${s.agentName}\n${s.taskId}`)),
+      ...summaries.map((s) => chalk.cyan(`${s.agentName}\n${s.variantName}`)),
     ],
     style: { head: [], border: [] },
   });
@@ -123,8 +123,8 @@ export function formatScoreboard(summaries: RunSetSummary[]): string {
 
   const table = new Table({
     head: [
+      chalk.cyan("Variant"),
       chalk.cyan("Agent"),
-      chalk.cyan("Task"),
       chalk.cyan("Score"),
       chalk.cyan("Time (ms)"),
       chalk.cyan("Lines"),
@@ -150,8 +150,8 @@ export function formatScoreboard(summaries: RunSetSummary[]): string {
       ? `$${s.metrics.estimatedCostUsd.mean.toFixed(4)}`
       : chalk.gray("—");
     table.push([
+      s.variantName,
       s.agentName,
-      s.taskId,
       score,
       formatMean(s.metrics.timeMs),
       formatMean(s.metrics.lineCount),
@@ -185,14 +185,14 @@ export function formatScoreboardMarkdown(summaries: RunSetSummary[]): string {
       : "—";
     const time = formatMean(s.metrics.timeMs);
     const lines = formatMean(s.metrics.lineCount);
-    return `| ${s.agentName} | ${s.taskId} | ${score} | ${time} | ${lines} | ${cost} | ${s.totalRuns} | ${s.runSetId} |`;
+    return `| ${s.agentName} | ${s.variantName} | ${score} | ${time} | ${lines} | ${cost} | ${s.totalRuns} | ${s.runSetId} |`;
   });
 
   const lines: string[] = [
     "# Scoreboard",
     "",
-    "| Agent | Task | Score | Time (ms) | Lines | Est. cost | Runs | Run Set |",
-    "|-------|------|------:|----------:|------:|-----------|-----:|---------|",
+    "| Agent | Variant | Score | Time (ms) | Lines | Est. cost | Runs | Run Set |",
+    "|-------|---------|------:|----------:|------:|-----------|-----:|---------|",
     ...rows,
     "",
   ];

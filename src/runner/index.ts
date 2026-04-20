@@ -15,8 +15,8 @@ import type {
   BenchConfig,
   ModelParams,
   RunResult,
-  Task,
   TokenUsage,
+  VariantConfig,
 } from "../types";
 import { createWorkspace } from "./workspace";
 
@@ -104,7 +104,7 @@ function parseTokenUsage(stdout: string): TokenUsage | null {
  *   workspace → agent → metrics → scoring → persist
  */
 export async function runOnce(
-  task: Task,
+  variant: VariantConfig,
   agentConfig: AgentConfig,
   benchConfig: BenchConfig,
   options: RunOptions,
@@ -113,20 +113,24 @@ export async function runOnce(
   const runId = crypto.randomUUID();
 
   // 1. Create isolated workspace
-  const workspacePath = createWorkspace(task, agentConfig.setup);
+  const workspacePath = createWorkspace(variant);
 
   // 2. Run before-commands in workspace
-  for (const cmd of agentConfig.commands?.before ?? []) {
+  for (const cmd of variant.commands?.before ?? []) {
     execSync(cmd, { cwd: workspacePath, stdio: "pipe" });
   }
 
   // 3. Invoke agent
   const adapter = getAdapter(agentConfig);
   const agentVersion = getAgentVersion(agentConfig);
-  const invokeResult = await adapter.invoke(workspacePath, task, agentConfig);
+  const invokeResult = await adapter.invoke(
+    workspacePath,
+    variant,
+    agentConfig,
+  );
 
   // 4. Run after-commands in workspace
-  for (const cmd of agentConfig.commands?.after ?? []) {
+  for (const cmd of variant.commands?.after ?? []) {
     execSync(cmd, { cwd: workspacePath, stdio: "pipe" });
   }
 
@@ -142,7 +146,7 @@ export async function runOnce(
   // 6. Score the output
   const scoring = await scoreRun(
     workspacePath,
-    task,
+    variant,
     invokeResult,
     benchConfig.judge,
   );
@@ -151,7 +155,7 @@ export async function runOnce(
     runId,
     runSetId,
     ...(variantName !== undefined ? { variantName } : {}),
-    taskId: task.id,
+    taskId: variant.id,
     agentName: agentConfig.name,
     agentVersion,
     agentConfig,
@@ -192,7 +196,7 @@ export async function runOnce(
  * Runs a task N times and returns all results.
  */
 export async function runTask(
-  task: Task,
+  variant: VariantConfig,
   agentConfig: AgentConfig,
   benchConfig: BenchConfig,
   runs: number,
@@ -205,7 +209,7 @@ export async function runTask(
 
   for (let i = 1; i <= runs; i++) {
     onAttemptStart?.(i, runs);
-    const result = await runOnce(task, agentConfig, benchConfig, {
+    const result = await runOnce(variant, agentConfig, benchConfig, {
       runSetId,
       attemptNumber: i,
       variantName,

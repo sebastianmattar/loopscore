@@ -1,35 +1,11 @@
-export type ScoringMethod = "llm-judge" | "tests" | "manual";
-
-export type JudgeProvider = "copilot" | "openai" | "anthropic";
-
-// ── Task ──────────────────────────────────────────────────────────────────────
-
-export interface TaskFrontmatter {
-  id: string;
-  title: string;
-  prompt: string;
-  model_params?: Record<string, unknown>;
-  acceptance_criteria: string[];
-  scoring?: {
-    methods?: ScoringMethod[];
-    tests_cmd?: string;
-  };
-}
-
-export interface Task extends TaskFrontmatter {
-  body: string;
-  filePath: string;
-}
+export type JudgeProvider = "copilot";
 
 // ── Agent ─────────────────────────────────────────────────────────────────────
 
 export interface SetupConfig {
-  /** Path to a directory containing skill files to copy into the workspace */
-  skillsDir?: string;
-  /** Path to an agents.md file to copy into the workspace */
-  agentsMd?: string;
-  /** Path to an mcp.json file to copy into the workspace */
-  mcpJson?: string;
+  files?: Record<string, string>;
+  /** Shell commands to run in the workspace before/after the agent. */
+  commands?: CommandsConfig;
 }
 
 /** Shell commands to run in the workspace before/after the agent. */
@@ -51,11 +27,8 @@ export interface AgentConfig {
   args?: string[];
   model?: string;
   model_params?: Record<string, unknown>;
-  setup?: SetupConfig;
   /** USD cost per 1 million tokens, used for cost estimation. */
   costPerMillionTokens?: number;
-  /** Shell commands to run in the workspace before/after the agent. */
-  commands?: CommandsConfig;
 }
 
 /** Interface that every agent adapter must implement */
@@ -68,8 +41,8 @@ export interface AgentAdapter {
   healthcheck(config: AgentConfig): Promise<void>;
   invoke(
     workspacePath: string,
-    task: Task,
-    config: AgentConfig,
+    variant: VariantConfig,
+    agentConfig: AgentConfig,
   ): Promise<AgentInvokeResult>;
 }
 
@@ -121,18 +94,9 @@ export interface TestResult {
   output: string;
 }
 
-export interface ManualResult {
-  score: number | null;
-  notes: string | null;
-  reviewedAt: string | null;
-  pending: boolean;
-}
-
 export interface ScoringResult {
-  methods: ScoringMethod[];
   llmJudge?: LLMJudgeResult;
   tests?: TestResult;
-  manual?: ManualResult;
   /** Weighted average of all available scores, null if none scored yet */
   overall: number | null;
 }
@@ -153,8 +117,7 @@ export interface TokenUsage {
 export interface RunResult {
   runId: string;
   runSetId: string;
-  variantName?: string;
-  taskId: string;
+  variantName: string;
   agentName: string;
   agentVersion?: string;
   agentConfig: AgentConfig;
@@ -180,8 +143,7 @@ export interface StatSummary {
 
 export interface RunSetSummary {
   runSetId: string;
-  variantName?: string;
-  taskId: string;
+  variantName: string;
   agentName: string;
   agentVersion?: string;
   agentConfig: AgentConfig;
@@ -204,33 +166,6 @@ export interface RunSetSummary {
 export interface JudgeConfig {
   provider: JudgeProvider;
   model?: string;
-  /** API key or token. Falls back to provider-specific env vars. */
-  apiKey?: string;
-}
-
-/**
- * Default values applied to every variant before its own settings.
- * Variants can override any of these fields.
- */
-export interface VariantDefaults {
-  /** Default agent name */
-  agent?: string;
-  /** Default task ID */
-  task?: string;
-  /** Override the agent executable */
-  cmd?: string;
-  /** Override the agent CLI args */
-  args?: string[];
-  /** Default model override */
-  model?: string;
-  /** Default model_params (shallow-merged, variant wins on key conflicts) */
-  model_params?: Record<string, unknown>;
-  /** Default setup config (shallow-merged, variant wins on key conflicts) */
-  setup?: SetupConfig;
-  /** USD cost per 1 million tokens */
-  costPerMillionTokens?: number;
-  /** Shell commands to run in workspace before/after the agent */
-  commands?: CommandsConfig;
 }
 
 /**
@@ -241,8 +176,6 @@ export interface VariantConfig {
   name: string;
   /** Agent name — must match a built-in adapter or an entry in the agents list */
   agent?: string;
-  /** Task ID — looked up from tasksDir */
-  task?: string;
   /** Override the agent executable */
   cmd?: string;
   /** Override the agent CLI args */
@@ -259,13 +192,19 @@ export interface VariantConfig {
   commands?: CommandsConfig;
 }
 
+/**
+ * Default values applied to every variant before its own settings.
+ * Variants can override any of these fields.
+ */
+export type VariantDefaults = Omit<VariantConfig, "name">;
+
 export interface BenchConfig {
   agents: AgentConfig[];
   variantDefaults?: VariantDefaults;
-  variants?: VariantConfig[];
+  variants: VariantConfig[];
+  acceptanceCriteria: string[];
   defaultRuns: number;
   parallel: boolean;
   runsDir: string;
-  tasksDir: string;
-  judge?: JudgeConfig;
+  judge: JudgeConfig;
 }

@@ -28,7 +28,7 @@ export function writeSummary(
     ...(first.variantName !== undefined
       ? { variantName: first.variantName }
       : {}),
-    taskId: first.taskId,
+    variantName: first.variantName,
     agentName: first.agentName,
     agentVersion: first.agentVersion,
     agentConfig: first.agentConfig,
@@ -98,7 +98,7 @@ export function listRunSets(runsDir: string): string[] {
  * Returns the matching summary if found, undefined otherwise.
  */
 export function findCompletedRuns(
-  taskId: string,
+  variantName: string,
   agentName: string,
   agentVersion: string,
   minRuns: number,
@@ -108,7 +108,7 @@ export function findCompletedRuns(
     try {
       const summary = readSummary(id, runsDir);
       if (
-        summary.taskId === taskId &&
+        summary.variantName === variantName &&
         summary.agentName === agentName &&
         summary.agentVersion === agentVersion &&
         summary.totalRuns >= minRuns

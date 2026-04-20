@@ -8,13 +8,13 @@ import type { AgentInvokeResult } from "../types";
 export function spawnAgent(
   cmd: string,
   args: string[],
-  cwd: string,
+  workspacePath: string,
 ): Promise<AgentInvokeResult> {
   return new Promise((resolve, reject) => {
     const startedAt = new Date();
 
-    const child = spawn(cmd, args, {
-      cwd,
+    const child = spawn(cmd, args ?? [], {
+      cwd: workspacePath,
       stdio: ["ignore", "pipe", "pipe"],
       env: process.env,
     });

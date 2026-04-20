@@ -16,44 +16,13 @@ import {
   formatScoreboardMarkdown,
 } from "./report";
 import { runTask } from "./runner/index";
-import { findTask, loadTasks } from "./tasks";
-import type { AgentConfig, Task } from "./types";
+import type { AgentConfig, VariantConfig } from "./types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function resolveAgentConfig(
-  agentName: string | undefined,
-  config: ReturnType<typeof loadConfig>,
-) {
-  if (agentName) {
-    const found = config.agents.find((a) => a.name === agentName);
-    if (!found) {
-      console.error(
-        chalk.red(
-          `Agent "${agentName}" not found in config. Available: ${config.agents.map((a) => a.name).join(", ")}`,
-        ),
-      );
-      process.exit(1);
-    }
-    return [found];
-  }
-  if (config.agents.length === 0) {
-    console.error(
-      chalk.red("No agents configured. Add agents to bench.config.json."),
-    );
-    process.exit(1);
-  }
-  return config.agents;
-}
 
 function makeRunSetId(variantName: string): string {
   const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   return `${ts}-${variantName}`;
-}
-
-function makeRunSetIdLegacy(taskId: string, agentName: string): string {
-  const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  return `${ts}-${taskId}-${agentName}`;
 }
 
 async function runHealthchecks(agents: AgentConfig[]): Promise<void> {
@@ -73,18 +42,17 @@ async function runHealthchecks(agents: AgentConfig[]): Promise<void> {
 
 /** Run one agent on one task, with an ora spinner (sequential mode). */
 async function runAgentWithSpinner(
-  task: Task,
+  variant: VariantConfig,
   agentConfig: AgentConfig,
   runs: number,
   config: ReturnType<typeof loadConfig>,
   force: boolean,
   prefixText: string,
-  variantName?: string,
 ): Promise<void> {
   const agentVersion = getAgentVersion(agentConfig);
   if (!force) {
     const existing = findCompletedRuns(
-      task.id,
+      variant.name,
       agentConfig.name,
       agentVersion,
       runs,
@@ -93,16 +61,14 @@ async function runAgentWithSpinner(
     if (existing) {
       console.log(
         chalk.yellow(
-          `\n  Skipping "${variantName ?? task.id}" / "${agentConfig.name}" ${agentVersion} — ` +
+          `\n  Skipping "${variant.name}" / "${agentConfig.name}" ${agentVersion} — ` +
             `already have ${existing.totalRuns} run(s) in ${existing.runSetId}. Use --force to override.`,
         ),
       );
       return;
     }
   }
-  const runSetId = variantName
-    ? makeRunSetId(variantName)
-    : makeRunSetIdLegacy(task.id, agentConfig.name);
+  const runSetId = makeRunSetId(variant.name);
 
   const spinner = ora({ prefixText }).start(`[1/${runs}] running…`);
   let startedAt = Date.now();
@@ -112,7 +78,7 @@ async function runAgentWithSpinner(
   }, 1000);
 
   const results = await runTask(
-    task,
+    variant,
     agentConfig,
     config,
     runs,
@@ -141,7 +107,7 @@ async function runAgentWithSpinner(
         }, 1000);
       }
     },
-    variantName,
+    variant.name,
   );
   clearInterval(ticker);
   spinner.stop();
@@ -153,43 +119,21 @@ async function runAgentWithSpinner(
 
 /** Run one agent on one task with plain log output (parallel mode). */
 async function runAgentParallel(
-  task: Task,
+  variant: VariantConfig,
   agentConfig: AgentConfig,
   runs: number,
   config: ReturnType<typeof loadConfig>,
   force: boolean,
-  variantName?: string,
+  variantName: string,
 ): Promise<void> {
-  const agentVersion = getAgentVersion(agentConfig);
-  const label = variantName
-    ? `"${variantName}"`
-    : `"${task.id}" / "${agentConfig.name}"`;
-  if (!force) {
-    const existing = findCompletedRuns(
-      task.id,
-      agentConfig.name,
-      agentVersion,
-      runs,
-      config.runsDir,
-    );
-    if (existing) {
-      console.log(
-        chalk.yellow(
-          `  Skipping ${label} ${agentVersion} — already have ${existing.totalRuns} run(s). Use --force to override.`,
-        ),
-      );
-      return;
-    }
-  }
-  const runSetId = variantName
-    ? makeRunSetId(variantName)
-    : makeRunSetIdLegacy(task.id, agentConfig.name);
+  const label = variantName;
 
+  const runSetId = makeRunSetId(variantName);
   const startedAt = Date.now();
   console.log(chalk.bold(`  ▶ ${label} starting…`));
 
   const results = await runTask(
-    task,
+    variant,
     agentConfig,
     config,
     runs,
@@ -262,103 +206,59 @@ export function buildCLI(): Command {
           : config.defaultRuns;
         const force = opts.force ?? false;
 
-        if (config.variants && config.variants.length > 0) {
-          // Variant mode — resolve agent configs and deduplicate for healthchecks
-          const allVariantConfigs = config.variants.map((v) =>
-            resolveVariantAgentConfig(v, config.agents, config.variantDefaults),
-          );
-          const seenNames = new Set<string>();
-          const uniqueAgentConfigs = allVariantConfigs.filter((a) => {
-            if (seenNames.has(a.name)) return false;
-            seenNames.add(a.name);
-            return true;
-          });
-          await runHealthchecks(uniqueAgentConfigs);
+        // Variant mode — resolve agent configs and deduplicate for healthchecks
+        const allVariantConfigs = config.variants.map((v) =>
+          resolveVariantAgentConfig(v, config.agents, config.variantDefaults),
+        );
+        const seenNames = new Set<string>();
+        const uniqueAgentConfigs = allVariantConfigs.filter((a) => {
+          if (seenNames.has(a.name)) return false;
+          seenNames.add(a.name);
+          return true;
+        });
+        await runHealthchecks(uniqueAgentConfigs);
 
-          const parallel = config.parallel && config.variants.length > 1;
-          console.log(
-            chalk.bold(
-              `\nRunning ${config.variants.length} variant(s), ${runs} run(s) each${parallel ? " (parallel)" : ""}…`,
-            ),
+        const parallel = config.parallel && config.variants.length > 1;
+        console.log(
+          chalk.bold(
+            `\nRunning ${config.variants.length} variant(s), ${runs} run(s) each${parallel ? " (parallel)" : ""}…`,
+          ),
+        );
+
+        const runVariant = async (variant: (typeof config.variants)[0]) => {
+          const agentConfig = resolveVariantAgentConfig(
+            variant,
+            config.agents,
+            config.variantDefaults,
           );
 
-          const runVariant = async (variant: (typeof config.variants)[0]) => {
-            const agentConfig = resolveVariantAgentConfig(
+          if (parallel) {
+            await runAgentParallel(
               variant,
-              config.agents,
-              config.variantDefaults,
+              agentConfig,
+              runs,
+              config,
+              force,
+              variant.name,
             );
-            const taskId = variant.task ?? config.variantDefaults?.task;
-            if (!taskId)
-              throw new Error(`Variant "${variant.name}": no task specified.`);
-            const task = findTask(config.tasksDir, taskId);
-            if (parallel) {
-              await runAgentParallel(
-                task,
-                agentConfig,
-                runs,
-                config,
-                force,
-                variant.name,
-              );
-            } else {
-              console.log(chalk.bold(`\n  Variant "${variant.name}"`));
-              await runAgentWithSpinner(
-                task,
-                agentConfig,
-                runs,
-                config,
-                force,
-                "    ",
-                variant.name,
-              );
-            }
-          };
-
-          if (parallel) {
-            await Promise.allSettled(config.variants.map(runVariant));
           } else {
-            for (const variant of config.variants) {
-              await runVariant(variant);
-            }
+            console.log(chalk.bold(`\n  Variant "${variant.name}"`));
+            await runAgentWithSpinner(
+              variant,
+              agentConfig,
+              runs,
+              config,
+              force,
+              "    ",
+            );
           }
+        };
+
+        if (parallel) {
+          await Promise.allSettled(config.variants.map(runVariant));
         } else {
-          // Legacy task mode
-          const tasks = loadTasks(config.tasksDir);
-          const agents = resolveAgentConfig(opts.agent, config);
-          await runHealthchecks(agents);
-
-          const combos = tasks.flatMap((task) =>
-            agents.map((agent) => ({ task, agent })),
-          );
-          const parallel = config.parallel && combos.length > 1;
-
-          console.log(
-            chalk.bold(
-              `\nRunning ${tasks.length} task(s) with ${agents.length} agent(s), ${runs} run(s) each${parallel ? " (parallel)" : ""}…`,
-            ),
-          );
-
-          if (parallel) {
-            await Promise.allSettled(
-              combos.map(({ task, agent }) =>
-                runAgentParallel(task, agent, runs, config, force),
-              ),
-            );
-          } else {
-            for (const { task, agent } of combos) {
-              console.log(
-                chalk.bold(`\n  Task "${task.id}" / Agent "${agent.name}"`),
-              );
-              await runAgentWithSpinner(
-                task,
-                agent,
-                runs,
-                config,
-                force,
-                "    ",
-              );
-            }
+          for (const variant of config.variants) {
+            await runVariant(variant);
           }
         }
       },
@@ -449,7 +349,7 @@ export function buildCLI(): Command {
         const extras =
           overrides.length > 0 ? chalk.gray(`  ${overrides.join("  ")}`) : "";
         console.log(
-          `  ${chalk.cyan(v.name)}  agent=${v.agent ?? config.variantDefaults?.agent ?? "?"}  task=${v.task ?? config.variantDefaults?.task ?? "?"}${extras}`,
+          `  ${chalk.cyan(v.name)}  agent=${v.agent ?? config.variantDefaults?.agent ?? "?"} ${extras}`,
         );
       }
       console.log("");

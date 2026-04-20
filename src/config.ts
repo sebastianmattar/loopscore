@@ -9,15 +9,15 @@ import type {
   VariantDefaults,
 } from "./types";
 
-const SetupConfigSchema = z.object({
-  skillsDir: z.string().optional(),
-  agentsMd: z.string().optional(),
-  mcpJson: z.string().optional(),
-});
-
 const CommandsConfigSchema = z.object({
   before: z.array(z.string()).optional(),
   after: z.array(z.string()).optional(),
+});
+
+const SetupConfigSchema = z.object({
+  files: z.record(z.string(), z.string()).optional(),
+  query: z.string(),
+  commands: CommandsConfigSchema.optional(),
 });
 
 const AgentConfigSchema = z.object({
@@ -26,14 +26,11 @@ const AgentConfigSchema = z.object({
   args: z.array(z.string()).optional(),
   model: z.string().optional(),
   model_params: z.record(z.string(), z.unknown()).optional(),
-  setup: SetupConfigSchema.optional(),
   costPerMillionTokens: z.number().optional(),
-  commands: CommandsConfigSchema.optional(),
 });
 
 const VariantDefaultsSchema = z.object({
   agent: z.string().optional(),
-  task: z.string().optional(),
   cmd: z.string().optional(),
   args: z.array(z.string()).optional(),
   model: z.string().optional(),
@@ -46,7 +43,6 @@ const VariantDefaultsSchema = z.object({
 const VariantConfigSchema = z.object({
   name: z.string(),
   agent: z.string().optional(),
-  task: z.string().optional(),
   cmd: z.string().optional(),
   args: z.array(z.string()).optional(),
   model: z.string().optional(),
@@ -57,29 +53,20 @@ const VariantConfigSchema = z.object({
 });
 
 const JudgeConfigSchema = z.object({
-  provider: z.enum(["copilot", "openai", "anthropic"]).default("copilot"),
+  provider: z.enum(["copilot"]).default("copilot"),
   model: z.string().optional(),
-  apiKey: z.string().optional(),
 });
 
 const BenchConfigSchema = z.object({
   agents: z.array(z.union([AgentConfigSchema, z.string()])).default([]),
   variantDefaults: VariantDefaultsSchema.optional(),
-  variants: z.array(VariantConfigSchema).optional(),
+  variants: z.array(VariantConfigSchema),
+  acceptanceCriteria: z.array(z.string()),
   defaultRuns: z.number().int().min(1).default(3),
   parallel: z.boolean().default(true),
   runsDir: z.string().default("./runs"),
-  tasksDir: z.string().default("./tasks"),
-  judge: JudgeConfigSchema.optional(),
+  judge: JudgeConfigSchema,
 });
-
-const DEFAULT_CONFIG: BenchConfig = {
-  agents: [],
-  defaultRuns: 3,
-  parallel: true,
-  runsDir: "./runs",
-  tasksDir: "./tasks",
-};
 
 export function loadConfig(configPath?: string): BenchConfig {
   const resolvedPath = configPath
@@ -87,7 +74,7 @@ export function loadConfig(configPath?: string): BenchConfig {
     : path.resolve(process.cwd(), "bench.config.json");
 
   if (!fs.existsSync(resolvedPath)) {
-    return DEFAULT_CONFIG;
+    throw Error(`Could not find configration in ${resolvedPath}`);
   }
 
   const raw = JSON.parse(
@@ -109,7 +96,6 @@ export function loadConfig(configPath?: string): BenchConfig {
     ...parsed,
     agents: inlineAgents,
     runsDir: path.resolve(configDir, parsed.runsDir),
-    tasksDir: path.resolve(configDir, parsed.tasksDir),
   };
 }
 
@@ -152,16 +138,6 @@ export function resolveVariantAgentConfig(
     ...defaults?.model_params,
     ...variant.model_params,
   };
-  const effectiveSetup = {
-    ...base.setup,
-    ...defaults?.setup,
-    ...variant.setup,
-  };
-  const effectiveCommands = {
-    ...base.commands,
-    ...defaults?.commands,
-    ...variant.commands,
-  };
 
   return {
     ...base,
@@ -175,9 +151,5 @@ export function resolveVariantAgentConfig(
       Object.keys(effectiveModelParams).length > 0
         ? effectiveModelParams
         : base.model_params,
-    setup: Object.keys(effectiveSetup).length > 0 ? effectiveSetup : base.setup,
-    ...(Object.keys(effectiveCommands).length > 0
-      ? { commands: effectiveCommands }
-      : {}),
   };
 }

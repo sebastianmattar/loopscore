@@ -1,6 +1,7 @@
 {
     "variantDefaults": {
         "task": "hello-world-api",
+        "agent": "gemini",
         "commands": {
             "before": [
                 "touch test"
@@ -11,13 +12,14 @@
         }
     },
     "variants": [
-        /*         {
-            "name": "copilot-hello-world",
-            "agent": "copilot"
-        }, */
         {
-            "name": "gemini-hello-world",
-            "agent": "gemini"
+            "name": "without-caveman"
+        },
+        {
+            "name": "with-caveman",
+            "commands": [
+                "npx skills add https://github.com/JuliusBrussee/caveman/tree/main/skills/caveman"
+            ]
         }
     ],
     "defaultRuns": 1,

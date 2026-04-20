@@ -67,3 +67,9 @@ For every variant the following settings can be configure:
 
 - [x] Extend the bench.config.json so agent parameters can optionally be overridden there. Get rid of the ./agents directory and the corresponding "agentsDir" configuration
 - [x] Extend the bench.config.json and allow execution of shell commands for each variant (also support variantDefaults for this)
+
+# Version 1.8
+
+- [ ] Migrate bench.config.json reading mechanism to YAML. Also convert the existing bench.config.json file to the new format
+- [ ] Add a configuration mechanism that allows us to place files in the benchmark workspace. Either by copying an existing file or by including the file contents in the bench.config
+- [ ] The prompt should also be configurable in the bench.config
