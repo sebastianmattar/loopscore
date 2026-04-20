@@ -179,11 +179,17 @@ export async function runOnce(
     variant.acceptanceCriteria ??
     benchConfig.variantDefaults?.acceptanceCriteria ??
     benchConfig.acceptanceCriteria;
+  const mergedChecks = [
+    ...(benchConfig.checks ?? []),
+    ...(benchConfig.variantDefaults?.checks ?? []),
+    ...(variant.checks ?? []),
+  ];
   const scoring = await scoreRun(
     workspacePath,
     { ...benchConfig, acceptanceCriteria: effectiveCriteria },
     invokeResult,
     benchConfig.judge,
+    mergedChecks.length > 0 ? mergedChecks : undefined,
   );
 
   const result: RunResult = {

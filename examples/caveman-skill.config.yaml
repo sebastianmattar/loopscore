@@ -6,6 +6,24 @@ acceptanceCriteria:
   - Code compiles and runs with ts-node or tsx
   - A README.md is present with usage instructions
 
+checks:
+  - name: Builds?
+    command: npm run build
+    scoreIfPasses: 10
+    scoreIfFails: -10
+  - name: Always fails
+    command: exit 1
+    scoreIfPasses: 0
+    scoreIfFails: 10
+  - name: pnpm used?
+    command: (ls pnpm-lock.yaml && echo ok) || exit 1
+    scoreIfPasses: 10
+    scoreIfFails: -10
+  - name: Latest typescript version?
+    command: (pnpm outdated typescript && echo "good") || exit 1
+    scoreIfPasses: 10
+    scoreIfFails: -10
+
 variantDefaults:
   agent: gemini
   setup:
@@ -21,6 +39,7 @@ variantDefaults:
 
         Use TypeScript with strict mode enabled. No external HTTP framework dependencies (use Node.js `http` module).
         Items should have at minimum: id (uuid or incremental), name (string), createdAt (ISO string).
+        Use the current stable versions for depencies. Use pnpm as package manager.
 
 variants:
   - name: without-caveman

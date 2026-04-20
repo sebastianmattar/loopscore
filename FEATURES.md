@@ -81,8 +81,11 @@ For every variant the following settings can be configure:
 
 # Version 1.10
 
-- [ ] After a run, the summary markdown should be written into the bench directory
-- [ ] Judging should be extended to allow custom commands, to be specified in the config.yaml. Example: run unit tests, perform linting, check for library versions. Each test-code should consist of the following properties:
+- [x] After a run, the summary markdown should be written into the bench directory
+- [x] Judging should be extended to allow custom commands, to be specified in the config.yaml. Example: run unit tests, perform linting, check for library versions. Each test-code should consist of the following properties:
   - shell command
   - score if succeeds, score if fails (can be negative)
   - name
+
+- [x] The summary.md should include results of all runs for the configuration that are available, including older ones.
+- [x] The score of the LLM judge and the testcases should be displayed in separate columns

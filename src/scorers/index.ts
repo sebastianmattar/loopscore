@@ -4,8 +4,10 @@ import path from "path";
 import type {
   AgentInvokeResult,
   BenchConfig,
+  CheckConfig,
   JudgeConfig,
   ScoringResult,
+  TestResult,
 } from "../types";
 import { runLLMJudge } from "./llm-judge";
 
@@ -80,14 +82,55 @@ function buildWorkspaceSnapshot(workspacePath: string): string {
 }
 
 /**
+ * Runs shell-command checks in the agent workspace and returns a TestResult[].
+ * Each check passes if the command exits with code 0.
+ */
+function runChecks(checks: CheckConfig[], workspacePath: string): TestResult[] {
+  const results: TestResult[] = [];
+
+  for (const check of checks) {
+    try {
+      const out = execSync(check.command, {
+        cwd: workspacePath,
+        encoding: "utf-8",
+        stdio: "pipe",
+      });
+      results.push({
+        name: check.name,
+        success: true,
+        score: check.scoreIfPasses,
+        output: out.trim(),
+      });
+    } catch (err: unknown) {
+      const stderr =
+        err instanceof Error && "stderr" in err
+          ? String((err as { stderr?: unknown }).stderr)
+          : "";
+      results.push({
+        name: check.name,
+        success: false,
+        score: check.scoreIfFails,
+        output: stderr.trim(),
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
  * Computes a weighted average of available scores.
- * LLM-judge and tests each count equally; manual also counts equally.
+ * LLM-judge and checks each count equally.
  */
 function computeOverall(result: Partial<ScoringResult>): number | null {
   const scores: number[] = [];
 
   if (result.llmJudge != null) scores.push(result.llmJudge.score);
-  if (result.tests != null) scores.push(result.tests.score);
+  if (result.checks != null && result.checks.length > 0) {
+    const avg =
+      result.checks.reduce((sum, c) => sum + c.score, 0) / result.checks.length;
+    scores.push(avg);
+  }
 
   if (scores.length === 0) return null;
   return scores.reduce((a, b) => a + b, 0) / scores.length;
@@ -98,6 +141,7 @@ export async function scoreRun(
   bench: BenchConfig,
   _invokeResult: AgentInvokeResult,
   judgeConfig?: JudgeConfig,
+  checks?: CheckConfig[],
 ): Promise<ScoringResult> {
   const snapshot = buildWorkspaceSnapshot(workspacePath);
   const output: Partial<ScoringResult> = {};
@@ -111,6 +155,10 @@ export async function scoreRun(
     output.llmJudge = await runLLMJudge(bench, snapshot, bench.judge);
   } catch (err) {
     console.warn(`LLM judge failed: ${(err as Error).message}`);
+  }
+
+  if (checks && checks.length > 0) {
+    output.checks = runChecks(checks, workspacePath);
   }
 
   return {

@@ -86,16 +86,15 @@ export interface LLMJudgeResult {
 }
 
 export interface TestResult {
-  passed: number;
-  failed: number;
-  total: number;
+  name: string;
+  success: boolean;
   score: number;
   output: string;
 }
 
 export interface ScoringResult {
   llmJudge?: LLMJudgeResult;
-  tests?: TestResult;
+  checks?: TestResult[];
   /** Weighted average of all available scores, null if none scored yet */
   overall: number | null;
 }
@@ -156,6 +155,8 @@ export interface RunSetSummary {
   };
   scoring: {
     overall: StatSummary | null;
+    llmJudge?: StatSummary | null;
+    checks?: StatSummary | null;
   };
   runIds: string[];
 }
@@ -165,6 +166,13 @@ export interface RunSetSummary {
 export interface JudgeConfig {
   provider: JudgeProvider;
   model?: string;
+}
+
+export interface CheckConfig {
+  name: string;
+  command: string;
+  scoreIfPasses: number;
+  scoreIfFails: number;
 }
 
 /**
@@ -193,6 +201,8 @@ export interface VariantConfig {
   commands?: CommandsConfig;
   /** Acceptance criteria used by the LLM judge for this variant */
   acceptanceCriteria?: string[];
+  /** Shell command checks run after the agent; each contributes a score */
+  checks?: CheckConfig[];
 }
 
 /**
@@ -207,6 +217,8 @@ export interface BenchConfig {
   variantDefaults?: VariantDefaults;
   variants: VariantConfig[];
   acceptanceCriteria: string[];
+  /** Top-level checks applied to every variant run */
+  checks?: CheckConfig[];
   runCount: number;
   parallel: boolean;
   outputDir: string;

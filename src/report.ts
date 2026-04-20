@@ -125,7 +125,9 @@ export function formatScoreboard(summaries: RunSetSummary[]): string {
     head: [
       chalk.cyan("Variant"),
       chalk.cyan("Agent"),
-      chalk.cyan("Score"),
+      chalk.cyan("Overall"),
+      chalk.cyan("LLM Judge"),
+      chalk.cyan("Checks"),
       chalk.cyan("Time (ms)"),
       chalk.cyan("Lines"),
       chalk.cyan("Est. cost"),
@@ -146,6 +148,12 @@ export function formatScoreboard(summaries: RunSetSummary[]): string {
     const score = s.scoring.overall
       ? chalk.green(s.scoring.overall.mean.toFixed(3))
       : chalk.gray("—");
+    const llmJudge = s.scoring.llmJudge
+      ? chalk.green(s.scoring.llmJudge.mean.toFixed(3))
+      : chalk.gray("—");
+    const checks = s.scoring.checks
+      ? chalk.green(s.scoring.checks.mean.toFixed(3))
+      : chalk.gray("—");
     const cost = s.metrics.estimatedCostUsd
       ? `$${s.metrics.estimatedCostUsd.mean.toFixed(4)}`
       : chalk.gray("—");
@@ -153,6 +161,8 @@ export function formatScoreboard(summaries: RunSetSummary[]): string {
       s.variantName,
       s.agentName,
       score,
+      llmJudge,
+      checks,
       formatMean(s.metrics.timeMs),
       formatMean(s.metrics.lineCount),
       cost,
@@ -180,19 +190,23 @@ export function formatScoreboardMarkdown(summaries: RunSetSummary[]): string {
 
   const rows = sorted.map((s) => {
     const score = s.scoring.overall ? s.scoring.overall.mean.toFixed(3) : "—";
+    const llmJudge = s.scoring.llmJudge
+      ? s.scoring.llmJudge.mean.toFixed(3)
+      : "—";
+    const checks = s.scoring.checks ? s.scoring.checks.mean.toFixed(3) : "—";
     const cost = s.metrics.estimatedCostUsd
       ? `$${s.metrics.estimatedCostUsd.mean.toFixed(4)}`
       : "—";
     const time = formatMean(s.metrics.timeMs);
     const lines = formatMean(s.metrics.lineCount);
-    return `| ${s.agentName} | ${s.variantName} | ${score} | ${time} | ${lines} | ${cost} | ${s.totalRuns} | ${s.runSetId} |`;
+    return `| ${s.agentName} | ${s.variantName} | ${score} | ${llmJudge} | ${checks} | ${time} | ${lines} | ${cost} | ${s.totalRuns} | ${s.runSetId} |`;
   });
 
   const lines: string[] = [
     "# Scoreboard",
     "",
-    "| Agent | Variant | Score | Time (ms) | Lines | Est. cost | Runs | Run Set |",
-    "|-------|---------|------:|----------:|------:|-----------|-----:|---------|",
+    "| Agent | Variant | Overall | LLM Judge | Checks | Time (ms) | Lines | Est. cost | Runs | Run Set |",
+    "|-------|---------|--------:|----------:|-------:|----------:|------:|-----------|-----:|---------||",
     ...rows,
     "",
   ];

@@ -14,6 +14,13 @@ const CommandsConfigSchema = z.object({
   after: z.array(z.string()).optional(),
 });
 
+const CheckConfigSchema = z.object({
+  name: z.string(),
+  command: z.string(),
+  scoreIfPasses: z.number(),
+  scoreIfFails: z.number(),
+});
+
 const SetupConfigSchema = z.object({
   files: z.record(z.string(), z.string()).optional(),
   commands: CommandsConfigSchema.optional(),
@@ -39,6 +46,7 @@ const VariantDefaultsSchema = z.object({
   commands: CommandsConfigSchema.optional(),
   query: z.array(z.string()).optional(),
   acceptanceCriteria: z.array(z.string()).optional(),
+  checks: z.array(CheckConfigSchema).optional(),
 });
 
 const VariantConfigSchema = z.object({
@@ -53,6 +61,7 @@ const VariantConfigSchema = z.object({
   commands: CommandsConfigSchema.optional(),
   query: z.array(z.string()).optional(),
   acceptanceCriteria: z.array(z.string()).optional(),
+  checks: z.array(CheckConfigSchema).optional(),
 });
 
 const JudgeConfigSchema = z.object({
@@ -60,11 +69,12 @@ const JudgeConfigSchema = z.object({
   model: z.string().optional(),
 });
 
-const BenchConfigSchema = z.object({
+export const BenchConfigSchema = z.object({
   agents: z.array(z.union([AgentConfigSchema, z.string()])).default([]),
   variantDefaults: VariantDefaultsSchema.optional(),
   variants: z.array(VariantConfigSchema),
   acceptanceCriteria: z.array(z.string()),
+  checks: z.array(CheckConfigSchema).optional(),
   runCount: z.number().int().min(1).default(3),
   parallel: z.boolean().default(true),
   outputDir: z.string().default("./results"),

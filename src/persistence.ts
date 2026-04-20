@@ -54,6 +54,26 @@ export function writeSummary(
               .filter((s): s is number => s != null),
           )
         : null,
+      llmJudge: results.some((r) => r.scoring.llmJudge != null)
+        ? computeStat(
+            results
+              .map((r) => r.scoring.llmJudge?.score)
+              .filter((s): s is number => s != null),
+          )
+        : null,
+      checks: results.some(
+        (r) => r.scoring.checks != null && r.scoring.checks.length > 0,
+      )
+        ? computeStat(
+            results
+              .map((r) => {
+                const c = r.scoring.checks;
+                if (!c || c.length === 0) return null;
+                return c.reduce((sum, x) => sum + x.score, 0) / c.length;
+              })
+              .filter((s): s is number => s != null),
+          )
+        : null,
     },
     runIds: results.map((r) => r.runId),
   };

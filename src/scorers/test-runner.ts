@@ -26,8 +26,9 @@ export function runTests(workspacePath: string, testsCmd: string): TestResult {
   const { passed, failed } = parseTestCounts(output, exitCode);
   const total = passed + failed;
   const score = total > 0 ? passed / total : exitCode === 0 ? 1 : 0;
+  const success = exitCode === 0;
 
-  return { passed, failed, total, score, output };
+  return { name: "tests", success, score, output };
 }
 
 /**

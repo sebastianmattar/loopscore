@@ -1,6 +1,8 @@
 import chalk from "chalk";
 import { Command } from "commander";
+import fs from "fs";
 import ora from "ora";
+import path from "path";
 import { getAgentVersion } from "./agents/base";
 import { getAdapter } from "./agents/index";
 import { loadConfig, resolveVariantAgentConfig } from "./config";
@@ -48,7 +50,7 @@ async function runAgentWithSpinner(
   config: ReturnType<typeof loadConfig>,
   force: boolean,
   prefixText: string,
-): Promise<void> {
+): Promise<string | null> {
   const agentVersion = getAgentVersion(agentConfig);
   if (!force) {
     const existing = findCompletedRuns(
@@ -65,7 +67,7 @@ async function runAgentWithSpinner(
             `already have ${existing.totalRuns} run(s) in ${existing.runSetId}. Use --force to override.`,
         ),
       );
-      return;
+      return null;
     }
   }
   const runSetId = makeRunSetId(variant.name);
@@ -120,6 +122,7 @@ async function runAgentWithSpinner(
   const summaryPath = writeSummary(results, config.outputDir, runSetId);
   console.log(chalk.gray(`  Saved: ${summaryPath}`));
   console.log(`  Run set ID: ${chalk.cyan(runSetId)}`);
+  return runSetId;
 }
 
 /** Run one agent on one task with plain log output (parallel mode). */
@@ -130,7 +133,7 @@ async function runAgentParallel(
   config: ReturnType<typeof loadConfig>,
   force: boolean,
   variantName: string,
-): Promise<void> {
+): Promise<string | null> {
   const label = variantName;
 
   const runSetId = makeRunSetId(variantName);
@@ -179,6 +182,7 @@ async function runAgentParallel(
       `    ${label} finished in ${totalElapsed}s — saved: ${summaryPath}`,
     ),
   );
+  return runSetId;
 }
 
 // ── CLI ───────────────────────────────────────────────────────────────────────
@@ -227,7 +231,9 @@ export function buildCLI(): Command {
           ),
         );
 
-        const runVariant = async (variant: (typeof config.variants)[0]) => {
+        const runVariant = async (
+          variant: (typeof config.variants)[0],
+        ): Promise<string | null> => {
           const agentConfig = resolveVariantAgentConfig(
             variant,
             config.agents,
@@ -235,7 +241,7 @@ export function buildCLI(): Command {
           );
 
           if (parallel) {
-            await runAgentParallel(
+            return runAgentParallel(
               variant,
               agentConfig,
               runs,
@@ -245,7 +251,7 @@ export function buildCLI(): Command {
             );
           } else {
             console.log(chalk.bold(`\n  Variant "${variant.name}"`));
-            await runAgentWithSpinner(
+            return runAgentWithSpinner(
               variant,
               agentConfig,
               runs,
@@ -256,12 +262,31 @@ export function buildCLI(): Command {
           }
         };
 
+        let runSetIds: (string | null)[];
         if (parallel) {
-          await Promise.allSettled(config.variants.map(runVariant));
+          const results = await Promise.allSettled(
+            config.variants.map(runVariant),
+          );
+          runSetIds = results.map((r) =>
+            r.status === "fulfilled" ? r.value : null,
+          );
         } else {
+          runSetIds = [];
           for (const variant of config.variants) {
-            await runVariant(variant);
+            runSetIds.push(await runVariant(variant));
           }
+        }
+
+        // Write summary.md with ALL historical run sets (not just current run)
+        const allIds = listRunSets(config.outputDir);
+        if (allIds.length > 0) {
+          const summaries = allIds.map((id) =>
+            readSummary(id, config.outputDir),
+          );
+          const md = formatScoreboardMarkdown(summaries);
+          const summaryFile = path.join(config.outputDir, "summary.md");
+          fs.writeFileSync(summaryFile, md, "utf-8");
+          console.log(chalk.gray(`\n  Summary written: ${summaryFile}`));
         }
       },
     );
