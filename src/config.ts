@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import stripJsonComments from "strip-json-comments";
+import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 import type {
   AgentConfig,
@@ -38,6 +38,7 @@ const VariantDefaultsSchema = z.object({
   setup: SetupConfigSchema.optional(),
   costPerMillionTokens: z.number().optional(),
   commands: CommandsConfigSchema.optional(),
+  acceptanceCriteria: z.array(z.string()).optional(),
 });
 
 const VariantConfigSchema = z.object({
@@ -50,6 +51,7 @@ const VariantConfigSchema = z.object({
   setup: SetupConfigSchema.optional(),
   costPerMillionTokens: z.number().optional(),
   commands: CommandsConfigSchema.optional(),
+  acceptanceCriteria: z.array(z.string()).optional(),
 });
 
 const JudgeConfigSchema = z.object({
@@ -69,17 +71,35 @@ const BenchConfigSchema = z.object({
 });
 
 export function loadConfig(configPath?: string): BenchConfig {
-  const resolvedPath = configPath
-    ? path.resolve(configPath)
-    : path.resolve(process.cwd(), "bench.config.json");
+  // Probe for YAML first, then fall back to JSON
+  const defaultBases = [
+    "bench.config.yaml",
+    "bench.config.yml",
+    "bench.config.json",
+  ];
+  let resolvedPath: string;
+  if (configPath) {
+    resolvedPath = path.resolve(configPath);
+  } else {
+    const found = defaultBases
+      .map((b) => path.resolve(process.cwd(), b))
+      .find((p) => fs.existsSync(p));
+    if (!found) {
+      throw Error(
+        `Could not find bench.config.yaml or bench.config.json in ${process.cwd()}`,
+      );
+    }
+    resolvedPath = found;
+  }
 
   if (!fs.existsSync(resolvedPath)) {
     throw Error(`Could not find configration in ${resolvedPath}`);
   }
 
-  const raw = JSON.parse(
-    stripJsonComments(fs.readFileSync(resolvedPath, "utf-8")),
-  );
+  const text = fs.readFileSync(resolvedPath, "utf-8");
+  const ext = path.extname(resolvedPath).toLowerCase();
+  const raw =
+    ext === ".yaml" || ext === ".yml" ? parseYaml(text) : JSON.parse(text);
   const parsed = BenchConfigSchema.parse(raw);
 
   // Resolve relative paths relative to the config file directory

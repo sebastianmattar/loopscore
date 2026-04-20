@@ -1,47 +1,53 @@
-# Plan: Workspace Setup Features (v1.8)
+# V1.8 Implementation Plan
 
-## TL;DR
+## 1. YAML config support
 
-Extend `SetupConfig` with three new fields — `files`, `promptFile`, and `copilotInstructionsMd` — so users can fully configure benchmarking workspaces from `bench.config.json` without touching task files or agent adapters.
+**Goal:** Replace JSON with YAML as the primary config format.
 
-## Steps
+- [x] Add `yaml` npm package (`pnpm add yaml`)
+- [x] Update `loadConfig` in `config.ts`:
+  - [x] Parse `.yaml`/`.yml` files with `yaml.parse()` instead of `JSON.parse` + `stripJsonComments`
+  - [x] Keep JSON support for backward compatibility (detect by file extension)
+  - [x] Remove `strip-json-comments` dependency once JSON is no longer primary
+- [x] Convert `bench.config.json` → `bench.config.yaml` (same structure, YAML syntax)
+- [x] Update README examples
 
-### Phase 1 — Types & schema
+## 2. Write `SetupConfig.files` to workspace
 
-1. **`src/types.ts`** — Add to `SetupConfig`:
-   - `files?: Record<string, string>` — map of `{ "dest/path": "contents" }`
-   - remove existing skillsDir, agentsMd, mcpJson
-2. **`src/config.ts`** — Add the same three fields to `SetupConfigSchema`:
-   - `files`: `z.record(z.string(), z.string()).optional()`
+**Goal:** Actually materialise the `files` map from `SetupConfig` as files in the temp workspace.
 
-### Phase 2 — Config path resolution
+The `createWorkspace` function in `runner/workspace.ts` has a comment about writing setup files but does nothing.
 
-3. **`src/config.ts`** — In `loadConfig`, resolve all `SetupConfig` path fields (existing: `skillsDir`, `agentsMd`, `mcpJson`; new: `promptFile`, `copilotInstructionsMd`, `files` values) relative to `configDir`, so relative paths in `bench.config.json` always work regardless of cwd.
+- [x] Change `createWorkspace(variant)` signature to also accept the resolved `SetupConfig` (merged from `variantDefaults.setup` + `variant.setup`)
+- [x] After git init, iterate `setup.files` and write each entry as `fs.writeFileSync(path.join(workspacePath, filename), content)`
+- [x] Create parent directories as needed (`fs.mkdirSync(..., { recursive: true })`)
+- [x] Update call sites in `runner/index.ts` to pass the merged setup
 
-### Phase 3 — Workspace execution
+## 3. Inline prompt and acceptance criteria
 
-4. **`src/runner/workspace.ts`** — Extend `copySetupFiles()`:
-   - `copilotInstructionsMd` → copy to `.github/copilot-instructions.md`
-   - `promptFile` → read and append content to `requirements.md` after it is written
-   - `files` → iterate entries, `mkdirSync` parent dirs, copy each src to dest
+**Goal:** Allow `prompt` and `acceptance_criteria` to live in `bench.config.yaml` rather than separate task markdown files.
 
-## Relevant Files
+**Current gap:** `setup.query` is the prompt and `benchConfig.acceptanceCriteria` are the criteria — both exist in the type system but neither is wired up end-to-end.
 
-| File                      | Change                                                    |
-| ------------------------- | --------------------------------------------------------- |
-| `src/types.ts`            | Add fields to `SetupConfig`                               |
-| `src/config.ts`           | Extend `SetupConfigSchema`; resolve paths in `loadConfig` |
-| `src/runner/workspace.ts` | Handle new fields in `copySetupFiles`                     |
+### 3a. Write `requirements.md` to workspace
 
-## Decisions
+- [x] In `createWorkspace` (same pass as feature 2), write `setup.query` as `requirements.md`
 
-- `promptFile` **appends** to `requirements.md` — keeps task content intact, lets you layer agent-specific instructions per variant
-- `copilotInstructionsMd` is separate from `agentsMd` (which writes `.github/agents.md`) since they target different agents and paths
-- `files` src paths are resolved relative to configDir; dest paths are relative to workspace root
-- All new fields inherit through `variantDefaults` → variant merge automatically (handled by existing spread merge in `resolveVariantAgentConfig`)
-- Out of scope: template variable substitution inside copied files
+### 3b. Expand template variables in agent args
 
-## Verification
+- [x] In `runner/subprocess.ts` (or `base.ts`), before spawning, replace in every arg:
+  - [x] `{requirementsContent}` → value of `setup.query`
+  - [x] `{requirementsFile}` → `path.join(workspacePath, "requirements.md")`
+  - [x] `{workspacePath}` → `workspacePath`
+- [x] Pass the needed values through from `runOnce`
 
-1. Add `setup.files`, `setup.promptFile`, `setup.copilotInstructionsMd` to `bench.config.json`, run `pnpm run dev run-all -f`, inspect the workspace temp dir
-2. `pnpm run build` — no TypeScript errors
+### 3c. Surface `acceptanceCriteria` from variant/defaults
+
+- [x] Add `acceptanceCriteria` to `VariantConfig` and `VariantDefaults` (types + Zod schemas) as `string[]` optional
+- [x] In `runner/index.ts`, resolve effective criteria: `variant.acceptanceCriteria ?? defaults?.acceptanceCriteria ?? benchConfig.acceptanceCriteria`
+- [x] Pass resolved criteria alongside `benchConfig` into `scoreRun` / LLM judge (or mutate a local copy of `benchConfig`)
+
+### 3d. Update `bench.config.yaml`
+
+- [x] Move the `hello-world-api` task's `prompt` and `acceptance_criteria` inline into `variantDefaults` in the converted YAML config
+- [x] Keep `tasks/hello-world-api.md` as reference; it is no longer required at runtime

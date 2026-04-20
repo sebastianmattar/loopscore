@@ -94,7 +94,7 @@ export function listRunSets(runsDir: string): string[] {
 
 /**
  * Checks if a sufficient number of runs already exist for a given
- * (taskId, agentName, agentVersion) combination.
+ * (agentName, agentVersion) combination.
  * Returns the matching summary if found, undefined otherwise.
  */
 export function findCompletedRuns(

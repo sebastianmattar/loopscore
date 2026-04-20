@@ -16,11 +16,10 @@ export interface CommandsConfig {
 
 export interface AgentConfig {
   name: string;
-  /** Executable name, e.g. "gh" or "kiro" */
+  /** Executable name, e.g. "copilot" or "gemini" */
   cmd: string;
   /**
    * CLI args. Supports template variables:
-   *   {requirementsFile}  – absolute path to requirements.md in workspace
    *   {workspacePath}     – absolute path to workspace root
    *   {prompt}            – raw task prompt string
    */
@@ -188,8 +187,12 @@ export interface VariantConfig {
   setup?: SetupConfig;
   /** USD cost per 1 million tokens */
   costPerMillionTokens?: number;
+  /** Prompts that will be sent to the agent to work on the benchmark */
+  query?: string[];
   /** Shell commands to run in workspace before/after the agent */
   commands?: CommandsConfig;
+  /** Acceptance criteria used by the LLM judge for this variant */
+  acceptanceCriteria?: string[];
 }
 
 /**

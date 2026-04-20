@@ -71,5 +71,5 @@ For every variant the following settings can be configure:
 # Version 1.8
 
 - [ ] Migrate bench.config.json reading mechanism to YAML. Also convert the existing bench.config.json file to the new format
-- [ ] Add a configuration mechanism that allows us to place files in the benchmark workspace. Either by copying an existing file or by including the file contents in the bench.config
-- [ ] The prompt should also be configurable in the bench.config
+- [ ] Implement the mechanism that actually creates the files defined in the SetupConfig.files property
+- [ ] The prompt and the acceptance_criteria should also be configurable in the bench.config

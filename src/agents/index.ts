@@ -3,7 +3,6 @@ import { createSubprocessAdapter } from "./base";
 import claudeAdapter from "./claude";
 import copilotAdapter from "./copilot";
 import geminiAdapter from "./gemini";
-import kiroAdapter from "./kiro";
 
 /**
  * Built-in adapters. Keys match the `name` field in AgentConfig.
@@ -11,7 +10,6 @@ import kiroAdapter from "./kiro";
  */
 const BUILT_IN_ADAPTERS: Record<string, AgentAdapter> = {
   copilot: copilotAdapter,
-  kiro: kiroAdapter,
   gemini: geminiAdapter,
   claude: claudeAdapter,
 };

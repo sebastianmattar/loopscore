@@ -113,7 +113,20 @@ export async function runOnce(
   const runId = crypto.randomUUID();
 
   // 1. Create isolated workspace
-  const workspacePath = createWorkspace(variant);
+  const mergedSetup = {
+    ...benchConfig.variantDefaults?.setup,
+    ...variant.setup,
+  };
+  const workspacePath = createWorkspace(
+    variant,
+    Object.keys(mergedSetup).length > 0 ? mergedSetup : undefined,
+  );
+
+  // Effective variant with merged setup (used for template variable expansion in agent args)
+  const effectiveVariant = {
+    ...variant,
+    setup: Object.keys(mergedSetup).length > 0 ? mergedSetup : variant.setup,
+  };
 
   // 2. Run before-commands in workspace
   for (const cmd of variant.commands?.before ?? []) {
@@ -125,7 +138,7 @@ export async function runOnce(
   const agentVersion = getAgentVersion(agentConfig);
   const invokeResult = await adapter.invoke(
     workspacePath,
-    variant,
+    effectiveVariant,
     agentConfig,
   );
 
@@ -144,9 +157,13 @@ export async function runOnce(
   );
 
   // 6. Score the output
+  const effectiveCriteria =
+    variant.acceptanceCriteria ??
+    benchConfig.variantDefaults?.acceptanceCriteria ??
+    benchConfig.acceptanceCriteria;
   const scoring = await scoreRun(
     workspacePath,
-    benchConfig,
+    { ...benchConfig, acceptanceCriteria: effectiveCriteria },
     invokeResult,
     benchConfig.judge,
   );

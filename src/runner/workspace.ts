@@ -2,16 +2,19 @@ import { execSync } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import type { VariantConfig } from "../types";
+import type { SetupConfig, VariantConfig } from "../types";
 
 /**
  * Creates a fresh isolated workspace for a single run:
  *   1. Allocates a temp directory
  *   2. git init + empty initial commit (so git diff HEAD works later)
- *   3. Writes requirements.md
- *   4. Copies any setup files (skills, agents.md, mcp.json)
+ *   3. Writes requirements.md from setup.query
+ *   4. Writes any additional files defined in setup.files
  */
-export function createWorkspace(variant: VariantConfig): string {
+export function createWorkspace(
+  variant: VariantConfig,
+  setup?: SetupConfig,
+): string {
   const workspacePath = fs.mkdtempSync(
     path.join(os.tmpdir(), `loopscore-${variant.name}-`),
   );
@@ -61,6 +64,13 @@ export function createWorkspace(variant: VariantConfig): string {
     cwd: workspacePath,
     stdio: "ignore",
   });
+
+  // Write additional files defined in setup.files
+  for (const [relPath, content] of Object.entries(setup?.files ?? {})) {
+    const dest = path.join(workspacePath, relPath);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.writeFileSync(dest, content, "utf-8");
+  }
 
   return workspacePath;
 }
