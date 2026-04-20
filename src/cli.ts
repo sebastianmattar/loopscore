@@ -187,23 +187,24 @@ export function buildCLI(): Command {
   const program = new Command()
     .name("loopscore")
     .description("Benchmark agentic coding AIs against coding tasks")
-    .version("0.1.0")
-    .requiredOption(
-      "-c, --config <path>",
-      "Path to config file (e.g. mybench.config.yaml)",
-    );
-
+    .version("0.1.0");
   // ── bench run-all ──────────────────────────────────────────────────────────
   program
     .command("run")
     .description("Run a benchmark")
+    .argument("config", "Path to config file (e.g. mybench.config.yaml)")
     .option(
       "-f, --force",
       "Run even if enough runs already exist for this configuration",
     )
     .action(
-      async (opts: { agent?: string; runs?: string; force?: boolean }) => {
-        const config = loadConfig(program.opts().config as string);
+      async (
+        configFile,
+        opts: {
+          force?: boolean;
+        },
+      ) => {
+        const config = loadConfig(configFile as string);
         const runs = config.runCount ?? 3;
         const force = opts.force ?? false;
 
@@ -268,11 +269,12 @@ export function buildCLI(): Command {
   // ── bench report ──────────────────────────────────────────────────────────
   program
     .command("report")
+    .argument("config", "Path to config file (e.g. mybench.config.yaml)")
     .description(
       "Show metrics and scores for a run set, or all run sets with --all",
     )
-    .action(() => {
-      const config = loadConfig(program.opts().config as string);
+    .action((configFile) => {
+      const config = loadConfig(configFile as string);
 
       const ids = listRunSets(config.outputDir);
       if (ids.length === 0) {
@@ -289,9 +291,10 @@ export function buildCLI(): Command {
   program
     .command("scoreboard")
     .description("Show a ranked overview of all run sets")
+    .argument("config", "Path to config file (e.g. mybench.config.yaml)")
     .option("-m, --markdown", "Output as Markdown instead of a terminal table")
-    .action((opts: { markdown?: boolean }) => {
-      const config = loadConfig(program.opts().config as string);
+    .action((configFile, opts: { markdown?: boolean }) => {
+      const config = loadConfig(configFile as string);
       const ids = listRunSets(config.outputDir);
       const summaries = ids.map((id) => readSummary(id, config.outputDir));
       console.log(
@@ -299,52 +302,6 @@ export function buildCLI(): Command {
           ? formatScoreboardMarkdown(summaries)
           : formatScoreboard(summaries),
       );
-    });
-
-  // ── bench list ────────────────────────────────────────────────────────────
-  const listCmd = program.command("list").description("List runs or tasks");
-
-  listCmd
-    .command("runs")
-    .description("List all run sets")
-    .action(() => {
-      const config = loadConfig(program.opts().config as string);
-      const runSets = listRunSets(config.outputDir);
-      if (runSets.length === 0) {
-        console.log(chalk.gray("No run sets found."));
-        return;
-      }
-      console.log(chalk.bold(`\nRun sets in ${config.outputDir}:\n`));
-      for (const id of runSets) {
-        console.log(`  ${chalk.cyan(id)}`);
-      }
-      console.log("");
-    });
-
-  listCmd
-    .command("variants")
-    .description("List all variants defined in the config")
-    .action(() => {
-      const config = loadConfig(program.opts().config as string);
-      if (!config.variants || config.variants.length === 0) {
-        console.log(chalk.gray("No variants configured."));
-        return;
-      }
-      console.log(chalk.bold(`\nVariants:\n`));
-      for (const v of config.variants) {
-        const overrides: string[] = [];
-        if (v.model) overrides.push(`model=${v.model}`);
-        if (v.model_params && Object.keys(v.model_params).length > 0)
-          overrides.push(`params=${JSON.stringify(v.model_params)}`);
-        if (v.setup && Object.keys(v.setup).length > 0)
-          overrides.push(`setup=${JSON.stringify(v.setup)}`);
-        const extras =
-          overrides.length > 0 ? chalk.gray(`  ${overrides.join("  ")}`) : "";
-        console.log(
-          `  ${chalk.cyan(v.name)}  agent=${v.agent ?? config.variantDefaults?.agent ?? "?"} ${extras}`,
-        );
-      }
-      console.log("");
     });
 
   return program;

@@ -1,35 +1,63 @@
-# loopscore - naive benchmark for AI agents
+# loopscore
 
-This is a CLI tool to do naive comparisons of different agentic coding agent configurations.
+### A Naive Benchmark for AI Coding Agents
 
-## Motivation
+**loopscore** is a CLI-based evaluation tool designed for developers who need a "gut check" on their agentic workflows. It automates the process of running identical tasks across different agent configurations to see which one actually ships working code and which one just burns tokens.
 
-- Trying to figure out which model suits best to your requirements?
-- Not sure if your new AGENTS.md performs better than the old one?
-- Is that MCP really improving quality of result?
+---
 
-This is a simple tool that can run the same set of commands with different agentic environments. It will record the output and perform a simple evaluation:
+## 🎯 Why Run loopscore?
 
-- Tokens / Time taken
-- Lines of code
-- Complexity
-- Fulfilling the requirements (we are using an agentic judge for this)
+In the rapidly evolving AI landscape, "vibes-based" testing eventually hits a wall. You need this tool if you are:
 
-## Caveats
+- **Benchmarking Models:** Comparing if `Claude 3.5 Sonnet` truly outperforms `GPT-4o` for your specific codebase.
+- **Prompt Engineering:** Testing if a new `AGENTS.md` or system instructions actually improve logic or just change the coding style.
+- **Tooling ROI:** Evaluating if adding a **Model Context Protocol (MCP)** provides a measurable lift in quality or simply adds latency.
 
-Like with everything LLM the results must be taken with a grain of salt:
+---
 
-- Results can randomly vary due to different seeds, hardware and other factors
-- Some providers may reduce thinking budgets due to load leading to different outcomes
-- Models may be updated (minor updates are not always communicated)
-- System prompts can be updated
-- Providers may use caching for similiar queries, reducing output variance
-- Models may be tuned for benchmarking ("benchmaxxing") and not perform similar in real-world scenarios
-- The LLM judge looking at the run output is an LLM and therefore unreliable
+## ⚙️ How It Works
 
-## Prerequisites
+The tool executes a standardized set of commands across multiple **agentic environments**. Once the agents complete their tasks, `loopscore` aggregates the data and runs an evaluation suite:
 
-- Node.js 22+
-- pnpm 10+
-- Agent CLIs you want to test installed and on `$PATH` (e.g. `copilot`, `gemini`, `claude`)
-- Agents must be authenticated, you can provide API Keys using the .env mechanism
+#### 1. Set up workspace
+
+- Inject files such as (AGENTS.md, REQUIREMENTS.md)
+- Execute commands to install _Skills_ etc.
+
+#### 2. Perform benchmark
+
+- Start an agent with your query
+
+#### 3. Judge
+
+The generated results will be analyzed according to the following metrics.
+
+| Metric              | Description                                                                                              |
+| :------------------ | :------------------------------------------------------------------------------------------------------- |
+| **Efficiency**      | Total tokens consumed vs. wall-clock time taken. (Lower is better)                                       |
+| **Output Volume**   | Lines of code (LOC) generated to solve the problem. (Lower is better)                                    |
+| **Code Complexity** | Structural analysis of the resulting code. (Lower is better)                                             |
+| **Requirement Fit** | An **Agentic Judge** reviews the output against the original prompt to score success. (Higher is better) |
+
+---
+
+## ⚠️ Important Caveats
+
+Benchmark results in the LLM world should be viewed as a **compass, not a GPS**. Keep the following in mind:
+
+- **Benchmarking Complexity:** Creating realistic benchmarks is very hard. Models get worse with larger contexts, simple benchmarks without user interaction are very limited.
+- **Environmental Noise:** Results vary due to hardware, seed randomness, and provider-side load balancing.
+- **Provider Variability:** API providers often adjust "thinking budgets" or update system prompts without notice, and caching can mask variance.
+- **"Benchmaxxing":** Some models are fine-tuned specifically to score high on public benchmarks and common frameworks, but may falter in messy, real-world repositories.
+- **Judge Subjectivity:** The "LLM Judge" is itself an LLM, making it susceptible to the same hallucinations and biases as the agents it evaluates.
+
+---
+
+## 🛠 Prerequisites
+
+To get started, ensure your environment meets these requirements:
+
+- **Runtime:** Node.js **22+** and pnpm **10+**.
+- **Agent Access:** Target Agent CLIs (e.g., `copilot`, `gemini`, `claude`) must be installed and accessible via your `$PATH`.
+- **Authentication:** Agents must be pre-authenticated. You can manage API keys and secrets using a standard `.env` file if you need to.
