@@ -1,13 +1,13 @@
 import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
-import { spawnAgent } from "../runner/subprocess.js";
+import { spawnAgent } from "../runner/subprocess";
 import type {
   AgentAdapter,
   AgentConfig,
   AgentInvokeResult,
   Task,
-} from "../types.js";
+} from "../types";
 
 /**
  * Substitutes template variables in args:
@@ -39,12 +39,14 @@ function resolveArgs(
  */
 export function getAgentVersion(config: AgentConfig): string {
   try {
-    return execFileSync(config.cmd, ["--version"], {
-      timeout: 5000,
-      encoding: "utf-8",
-    })
-      .trim()
-      .split("\n")[0];
+    return (
+      execFileSync(config.cmd, ["--version"], {
+        timeout: 5000,
+        encoding: "utf-8",
+      })
+        .trim()
+        .split("\n")[0] ?? "unknown"
+    );
   } catch {
     return "unknown";
   }

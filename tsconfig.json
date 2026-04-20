@@ -1,14 +1,20 @@
 {
     "compilerOptions": {
-        "target": "ES2022",
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
+        // Environment setup & latest features
         "lib": [
-            "ES2022"
+            "ESNext"
         ],
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "verbatimModuleSyntax": true,
+        "noEmit": true,
         "outDir": "./dist",
         "rootDir": "./src",
         "strict": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedIndexedAccess": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
         "resolveJsonModule": true,

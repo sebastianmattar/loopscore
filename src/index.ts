@@ -4,7 +4,7 @@ try {
 } catch {
   /* no .env file */
 }
-import { buildCLI } from "./cli.js";
+import { buildCLI } from "./cli";
 
 buildCLI()
   .parseAsync(process.argv)

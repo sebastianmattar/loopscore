@@ -4,6 +4,9 @@
     "description": "Benchmark agentic coding AIs against coding tasks",
     "type": "module",
     "packageManager": "pnpm@10.33.0",
+    "engines": {
+        "node": ">=18"
+    },
     "bin": {
         "loopscore": "./dist/index.js"
     },
@@ -15,12 +18,13 @@
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.90.0",
-        "chalk": "^5.6.2",
+        "chalk": "^4.1.2",
         "cli-table3": "^0.6.5",
         "commander": "^14.0.0",
         "gray-matter": "^4.0.3",
         "openai": "^6.0.0",
         "ora": "^9.3.0",
+        "strip-json-comments": "^5.0.3",
         "zod": "^4.0.0"
     },
     "devDependencies": {

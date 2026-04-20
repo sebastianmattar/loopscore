@@ -1,9 +1,9 @@
-import type { AgentAdapter, AgentConfig } from "../types.js";
-import { createSubprocessAdapter } from "./base.js";
-import claudeAdapter from "./claude.js";
-import copilotAdapter from "./copilot.js";
-import geminiAdapter from "./gemini.js";
-import kiroAdapter from "./kiro.js";
+import type { AgentAdapter, AgentConfig } from "../types";
+import { createSubprocessAdapter } from "./base";
+import claudeAdapter from "./claude";
+import copilotAdapter from "./copilot";
+import geminiAdapter from "./gemini";
+import kiroAdapter from "./kiro";
 
 /**
  * Built-in adapters. Keys match the `name` field in AgentConfig.

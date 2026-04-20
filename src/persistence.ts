@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import type { RunResult, RunSetSummary, StatSummary } from "./types.js";
+import type { RunResult, RunSetSummary, StatSummary } from "./types";
 
 // ── Write ─────────────────────────────────────────────────────────────────────
 
@@ -22,7 +22,7 @@ export function writeSummary(
     throw new Error("Cannot write summary: no results provided");
   }
 
-  const first = results[0];
+  const first = results[0]!;
   const summary: RunSetSummary = {
     runSetId,
     ...(first.variantName !== undefined

@@ -2,7 +2,7 @@ import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
-import type { ComplexityResult, Metrics } from "./types.js";
+import type { ComplexityResult, Metrics } from "./types";
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ export async function collectMetrics(
 const CODE_EXTENSIONS = new Set([
   ".ts",
   ".tsx",
-  ".js",
+  "",
   ".jsx",
   ".mjs",
   ".cjs",
@@ -91,7 +91,7 @@ function measureLineCount(workspacePath: string): number {
     let added = 0;
     for (const line of output.split("\n")) {
       const match = line.match(/^(\d+)\s+\d+\s+(.+)$/);
-      if (match) {
+      if (match && match[1] && match[2]) {
         const filePath = match[2].trim();
         const ext = path.extname(filePath).toLowerCase();
         if (CODE_EXTENSIONS.has(ext)) {
@@ -137,7 +137,7 @@ function measureComplexity(workspacePath: string): ComplexityResult | null {
 }
 
 function collectSourceFiles(dir: string): string[] {
-  const EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx"]);
+  const EXTENSIONS = new Set([".ts", ".tsx", "", ".jsx"]);
   const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build"]);
   const results: string[] = [];
 

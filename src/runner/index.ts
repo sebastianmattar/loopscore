@@ -1,15 +1,15 @@
 import { execSync } from "child_process";
 import crypto from "crypto";
-import { getAgentVersion } from "../agents/base.js";
-import { getAdapter } from "../agents/index.js";
-import { collectMetrics } from "../metrics.js";
+import { getAgentVersion } from "../agents/base";
+import { getAdapter } from "../agents/index";
+import { collectMetrics } from "../metrics";
 import {
   saveWorkspaceFiles,
   writeAgentLogs,
   writeJudgeNotes,
   writeRun,
-} from "../persistence.js";
-import { scoreRun } from "../scorers/index.js";
+} from "../persistence";
+import { scoreRun } from "../scorers/index";
 import type {
   AgentConfig,
   BenchConfig,
@@ -17,8 +17,8 @@ import type {
   RunResult,
   Task,
   TokenUsage,
-} from "../types.js";
-import { createWorkspace } from "./workspace.js";
+} from "../types";
+import { createWorkspace } from "./workspace";
 
 export interface RunOptions {
   runSetId: string;

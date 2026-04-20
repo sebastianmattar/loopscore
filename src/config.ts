@@ -7,7 +7,7 @@ import type {
   BenchConfig,
   VariantConfig,
   VariantDefaults,
-} from "./types.js";
+} from "./types";
 
 const SetupConfigSchema = z.object({
   skillsDir: z.string().optional(),

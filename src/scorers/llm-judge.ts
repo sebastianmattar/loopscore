@@ -7,7 +7,7 @@ import type {
   JudgeProvider,
   LLMJudgeResult,
   Task,
-} from "../types.js";
+} from "../types";
 
 const SYSTEM_PROMPT = `You are an expert code reviewer evaluating AI-generated implementations.
 You will be given acceptance criteria and the contents of a workspace containing the generated code.
@@ -105,7 +105,7 @@ async function judgeWithAnthropic(
   });
 
   const content =
-    response.content[0].type === "text" ? response.content[0].text : "";
+    response.content[0]?.type === "text" ? response.content[0].text : "";
   const parsed = parseJudgeResponse(content);
 
   return {

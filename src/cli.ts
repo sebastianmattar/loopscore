@@ -1,23 +1,23 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import ora from "ora";
-import { getAgentVersion } from "./agents/base.js";
-import { getAdapter } from "./agents/index.js";
-import { loadConfig, resolveVariantAgentConfig } from "./config.js";
+import { getAgentVersion } from "./agents/base";
+import { getAdapter } from "./agents/index";
+import { loadConfig, resolveVariantAgentConfig } from "./config";
 import {
   findCompletedRuns,
   listRunSets,
   readSummary,
   writeSummary,
-} from "./persistence.js";
+} from "./persistence";
 import {
   formatReport,
   formatScoreboard,
   formatScoreboardMarkdown,
-} from "./report.js";
-import { runTask } from "./runner/index.js";
-import { findTask, loadTasks } from "./tasks.js";
-import type { AgentConfig, Task } from "./types.js";
+} from "./report";
+import { runTask } from "./runner/index";
+import { findTask, loadTasks } from "./tasks";
+import type { AgentConfig, Task } from "./types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

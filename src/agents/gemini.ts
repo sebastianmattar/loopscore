@@ -1,5 +1,5 @@
-import type { AgentAdapter, AgentConfig } from "../types.js";
-import { createSubprocessAdapter } from "./base.js";
+import type { AgentAdapter, AgentConfig } from "../types";
+import { createSubprocessAdapter } from "./base";
 
 /**
  * Gemini CLI agent adapter.

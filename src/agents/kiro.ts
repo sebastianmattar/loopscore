@@ -1,5 +1,5 @@
-import type { AgentAdapter } from "../types.js";
-import { createSubprocessAdapter } from "./base.js";
+import type { AgentAdapter } from "../types";
+import { createSubprocessAdapter } from "./base";
 
 /**
  * Kiro agent adapter.

@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import Table from "cli-table3";
-import type { RunSetSummary, StatSummary } from "./types.js";
+import type { RunSetSummary, StatSummary } from "./types";
 
 // ── Single run-set report ─────────────────────────────────────────────────────
 
