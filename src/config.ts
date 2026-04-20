@@ -67,7 +67,7 @@ const BenchConfigSchema = z.object({
   acceptanceCriteria: z.array(z.string()),
   runCount: z.number().int().min(1).default(3),
   parallel: z.boolean().default(true),
-  outputDir: z.string().default("./runs"),
+  outputDir: z.string().default("./results"),
   judge: JudgeConfigSchema,
 });
 

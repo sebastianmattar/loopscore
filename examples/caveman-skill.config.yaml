@@ -21,11 +21,6 @@ variantDefaults:
 
         Use TypeScript with strict mode enabled. No external HTTP framework dependencies (use Node.js `http` module).
         Items should have at minimum: id (uuid or incremental), name (string), createdAt (ISO string).
-  commands:
-    before:
-      - touch test
-    after:
-      - touch test2
 
 variants:
   - name: without-caveman
@@ -41,6 +36,6 @@ variants:
 
 runCount: 1
 parallel: true
-outputDir: ./runs
+outputDir: ./results
 judge:
   provider: copilot

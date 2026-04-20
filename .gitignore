@@ -3,3 +3,4 @@ dist/
 runs/
 .env
 .pnpm-store/
+results/

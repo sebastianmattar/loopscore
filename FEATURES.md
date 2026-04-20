@@ -78,3 +78,11 @@ For every variant the following settings can be configure:
 
 - [x] The directory structure should be refined. It should be <bench>/<benchname>/<variantname>/<run>. The <bench> name can be extracted from the filename, e.g. "bench.config.yaml" -> bench.
 - [x] The judging should only judge files that were created after project setup. We should only look at the files that are relevant for the line count
+
+# Version 1.10
+
+- [ ] After a run, the summary markdown should be written into the bench directory
+- [ ] Judging should be extended to allow custom commands, to be specified in the config.yaml. Example: run unit tests, perform linting, check for library versions. Each test-code should consist of the following properties:
+  - shell command
+  - score if succeeds, score if fails (can be negative)
+  - name
