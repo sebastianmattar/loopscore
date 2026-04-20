@@ -109,7 +109,7 @@ export async function runOnce(
   benchConfig: BenchConfig,
   options: RunOptions,
 ): Promise<RunResult> {
-  const { runSetId, attemptNumber, variantName } = options;
+  const { runSetId, attemptNumber } = options;
   const runId = crypto.randomUUID();
 
   // 1. Create isolated workspace
@@ -146,7 +146,7 @@ export async function runOnce(
   // 6. Score the output
   const scoring = await scoreRun(
     workspacePath,
-    variant,
+    benchConfig,
     invokeResult,
     benchConfig.judge,
   );
@@ -154,8 +154,7 @@ export async function runOnce(
   const result: RunResult = {
     runId,
     runSetId,
-    ...(variantName !== undefined ? { variantName } : {}),
-    taskId: variant.id,
+    variantName: variant.name,
     agentName: agentConfig.name,
     agentVersion,
     agentConfig,

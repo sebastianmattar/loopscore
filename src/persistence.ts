@@ -202,7 +202,7 @@ export function writeJudgeNotes(
   const lines: string[] = [
     `# Judge Notes — Run ${attemptNumber}`,
     "",
-    `**Task:** ${result.taskId}  `,
+    `**Variant:** ${result.variantName}  `,
     `**Agent:** ${result.agentName}  `,
     `**Score:** ${judge.score.toFixed(3)}  `,
     `**Model:** ${judge.provider} / ${judge.model}`,
