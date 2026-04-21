@@ -4,8 +4,7 @@ import path from "path";
 import type {
   AgentInvokeResult,
   BenchConfig,
-  CheckConfig,
-  JudgeConfig,
+  Measurements,
   ScoringResult,
   TestResult,
 } from "../types";
@@ -81,11 +80,13 @@ function buildWorkspaceSnapshot(workspacePath: string): string {
   return parts.join("\n\n");
 }
 
+type ShellMeasure = Measurements & { type: "shell" };
+
 /**
  * Runs shell-command checks in the agent workspace and returns a TestResult[].
  * Each check passes if the command exits with code 0.
  */
-function runChecks(checks: CheckConfig[], workspacePath: string): TestResult[] {
+function runChecks(checks: ShellMeasure[], workspacePath: string): TestResult[] {
   const results: TestResult[] = [];
 
   for (const check of checks) {
@@ -140,25 +141,32 @@ export async function scoreRun(
   workspacePath: string,
   bench: BenchConfig,
   _invokeResult: AgentInvokeResult,
-  judgeConfig?: JudgeConfig,
-  checks?: CheckConfig[],
 ): Promise<ScoringResult> {
   const snapshot = buildWorkspaceSnapshot(workspacePath);
   const output: Partial<ScoringResult> = {};
 
-  if (!judgeConfig) {
-    console.warn(
-      "llm-judge scoring requested but no judge config provided; skipping.",
-    );
-  }
-  try {
-    output.llmJudge = await runLLMJudge(bench, snapshot, bench.judge);
-  } catch (err) {
-    console.warn(`LLM judge failed: ${(err as Error).message}`);
+  const judgeMeasure = bench.measure.find(
+    (m): m is Measurements & { type: "judge" } => m.type === "judge",
+  );
+  const shellMeasures = bench.measure.filter(
+    (m): m is ShellMeasure => m.type === "shell",
+  );
+
+  if (judgeMeasure) {
+    try {
+      output.llmJudge = await runLLMJudge(
+        judgeMeasure.acceptanceCriteria ?? [],
+        snapshot,
+        judgeMeasure.provider,
+        judgeMeasure.model,
+      );
+    } catch (err) {
+      console.warn(`LLM judge failed: ${(err as Error).message}`);
+    }
   }
 
-  if (checks && checks.length > 0) {
-    output.checks = runChecks(checks, workspacePath);
+  if (shellMeasures.length > 0) {
+    output.checks = runChecks(shellMeasures, workspacePath);
   }
 
   return {

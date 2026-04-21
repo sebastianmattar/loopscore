@@ -157,21 +157,10 @@ export async function runOnce(
 
   // 6. Score the output
   onJudgeStart?.();
-  const effectiveCriteria =
-    variant.acceptanceCriteria ??
-    benchConfig.variantDefaults?.acceptanceCriteria ??
-    benchConfig.acceptanceCriteria;
-  const mergedChecks = [
-    ...(benchConfig.checks ?? []),
-    ...(benchConfig.variantDefaults?.checks ?? []),
-    ...(variant.checks ?? []),
-  ];
   const scoring = await scoreRun(
     workspacePath,
-    { ...benchConfig, acceptanceCriteria: effectiveCriteria },
+    benchConfig,
     invokeResult,
-    benchConfig.judge,
-    mergedChecks.length > 0 ? mergedChecks : undefined,
   );
 
   const result: RunResult = {
@@ -195,21 +184,22 @@ export async function runOnce(
   };
 
   // 7. Persist
-  writeRun(result, benchConfig.outputDir);
+  const outputDir = benchConfig.options!.outputDir;
+  writeRun(result, outputDir);
   writeAgentLogs(
     runSetId,
     attemptNumber,
     invokeResult.stdout,
     invokeResult.stderr,
-    benchConfig.outputDir,
+    outputDir,
   );
   saveWorkspaceFiles(
     runSetId,
     attemptNumber,
     workspacePath,
-    benchConfig.outputDir,
+    outputDir,
   );
-  writeJudgeNotes(runSetId, attemptNumber, result, benchConfig.outputDir);
+  writeJudgeNotes(runSetId, attemptNumber, result, outputDir);
 
   return result;
 }
@@ -252,7 +242,7 @@ export async function runTask(
 
   const { count: existingCount } = countExistingRuns(
     variant.name,
-    benchConfig.outputDir,
+    benchConfig.options!.outputDir,
   );
 
   const remaining = runs - existingCount;

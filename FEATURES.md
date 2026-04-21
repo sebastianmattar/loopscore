@@ -1,1 +1,2 @@
-- [ ] move getAgentVersion into AgentAdapter
+- [x] move getAgentVersion into AgentAdapter
+-

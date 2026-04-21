@@ -2,6 +2,31 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "options": {
+      "type": "object",
+      "properties": {
+        "runCount": {
+          "default": 3,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "parallel": {
+          "default": true,
+          "type": "boolean"
+        },
+        "outputDir": {
+          "default": "./results",
+          "type": "string"
+        }
+      },
+      "required": [
+        "runCount",
+        "parallel",
+        "outputDir"
+      ],
+      "additionalProperties": false
+    },
     "variantDefaults": {
       "type": "object",
       "properties": {
@@ -91,39 +116,6 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
-        },
-        "acceptanceCriteria": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "checks": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "command": {
-                "type": "string"
-              },
-              "scoreIfPasses": {
-                "type": "number"
-              },
-              "scoreIfFails": {
-                "type": "number"
-              }
-            },
-            "required": [
-              "name",
-              "command",
-              "scoreIfPasses",
-              "scoreIfFails"
-            ],
-            "additionalProperties": false
           }
         }
       },
@@ -224,39 +216,6 @@
             "items": {
               "type": "string"
             }
-          },
-          "acceptanceCriteria": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "checks": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "command": {
-                  "type": "string"
-                },
-                "scoreIfPasses": {
-                  "type": "number"
-                },
-                "scoreIfFails": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "name",
-                "command",
-                "scoreIfPasses",
-                "scoreIfFails"
-              ],
-              "additionalProperties": false
-            }
           }
         },
         "required": [
@@ -265,80 +224,76 @@
         "additionalProperties": false
       }
     },
-    "acceptanceCriteria": {
+    "measure": {
       "type": "array",
       "items": {
-        "type": "string"
-      }
-    },
-    "checks": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "judge"
+              },
+              "provider": {
+                "default": "copilot",
+                "type": "string",
+                "enum": [
+                  "copilot"
+                ]
+              },
+              "model": {
+                "type": "string"
+              },
+              "acceptanceCriteria": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "type",
+              "provider"
+            ],
+            "additionalProperties": false
           },
-          "command": {
-            "type": "string"
-          },
-          "scoreIfPasses": {
-            "type": "number"
-          },
-          "scoreIfFails": {
-            "type": "number"
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "shell"
+              },
+              "name": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              },
+              "scoreIfPasses": {
+                "type": "number"
+              },
+              "scoreIfFails": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "type",
+              "name",
+              "command",
+              "scoreIfPasses",
+              "scoreIfFails"
+            ],
+            "additionalProperties": false
           }
-        },
-        "required": [
-          "name",
-          "command",
-          "scoreIfPasses",
-          "scoreIfFails"
-        ],
-        "additionalProperties": false
+        ]
       }
-    },
-    "runCount": {
-      "default": 3,
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 9007199254740991
-    },
-    "parallel": {
-      "default": true,
-      "type": "boolean"
-    },
-    "outputDir": {
-      "default": "./results",
-      "type": "string"
-    },
-    "judge": {
-      "type": "object",
-      "properties": {
-        "provider": {
-          "default": "copilot",
-          "type": "string",
-          "enum": [
-            "copilot"
-          ]
-        },
-        "model": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "provider"
-      ],
-      "additionalProperties": false
     }
   },
   "required": [
     "variants",
-    "acceptanceCriteria",
-    "runCount",
-    "parallel",
-    "outputDir",
-    "judge"
+    "measure"
   ],
   "additionalProperties": false
 }

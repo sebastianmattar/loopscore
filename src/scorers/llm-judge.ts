@@ -1,8 +1,7 @@
 import { execFileSync } from "child_process";
 import type {
-  BenchConfig,
   CriterionScore,
-  JudgeConfig,
+  JudgeProvider,
   LLMJudgeResult,
 } from "../types";
 
@@ -20,12 +19,12 @@ interface JudgeResponse {
 }
 
 function buildUserPrompt(
-  bench: BenchConfig,
+  acceptanceCriteria: string[],
   workspaceSnapshot: string,
 ): string {
   return [
     "## Acceptance Criteria",
-    bench.acceptanceCriteria.map((c, i) => `${i + 1}. ${c}`).join("\n"),
+    acceptanceCriteria.map((c, i) => `${i + 1}. ${c}`).join("\n"),
     "",
     "## Generated Workspace",
     workspaceSnapshot,
@@ -132,12 +131,12 @@ async function judgeWithCopilotCLI(
 }
 
 export async function runLLMJudge(
-  bench: BenchConfig,
+  acceptanceCriteria: string[],
   workspaceSnapshot: string,
-  judgeConfig: JudgeConfig,
+  provider: JudgeProvider,
+  model?: string,
 ): Promise<LLMJudgeResult> {
-  const userPrompt = buildUserPrompt(bench, workspaceSnapshot);
-  const { provider, model } = judgeConfig;
+  const userPrompt = buildUserPrompt(acceptanceCriteria, workspaceSnapshot);
 
   switch (provider) {
     case "copilot": {

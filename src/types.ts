@@ -164,17 +164,21 @@ export interface RunSetSummary {
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-export interface JudgeConfig {
-  provider: JudgeProvider;
-  model?: string;
-}
-
-export interface CheckConfig {
-  name: string;
-  command: string;
-  scoreIfPasses: number;
-  scoreIfFails: number;
-}
+export type Measurements =
+  | {
+      type: "judge";
+      provider: JudgeProvider;
+      model?: string;
+      /** Acceptance criteria used by the LLM judge for this variant */
+      acceptanceCriteria?: string[];
+    }
+  | {
+      type: "shell";
+      name: string;
+      command: string;
+      scoreIfPasses: number;
+      scoreIfFails: number;
+    };
 
 /**
  * A named, self-contained benchmark variant that combines a specific agent,
@@ -190,10 +194,6 @@ export interface VariantConfig {
   query?: string[];
   /** Shell commands to run in workspace before/after the agent */
   commands?: CommandsConfig;
-  /** Acceptance criteria used by the LLM judge for this variant */
-  acceptanceCriteria?: string[];
-  /** Shell command checks run after the agent; each contributes a score */
-  checks?: CheckConfig[];
 }
 
 /**
@@ -202,16 +202,17 @@ export interface VariantConfig {
  */
 export type VariantDefaults = Omit<VariantConfig, "name">;
 
-export interface BenchConfig {
-  name: string;
-
-  variantDefaults?: VariantDefaults;
-  variants: VariantConfig[];
-  acceptanceCriteria: string[];
-  /** Top-level checks applied to every variant run */
-  checks?: CheckConfig[];
+export type RunOptions = {
   runCount: number;
   parallel: boolean;
   outputDir: string;
-  judge: JudgeConfig;
+};
+
+export interface BenchConfig {
+  name: string;
+  options?: RunOptions;
+
+  variantDefaults?: VariantDefaults;
+  variants: VariantConfig[];
+  measure: Measurements[];
 }

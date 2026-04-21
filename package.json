@@ -11,12 +11,11 @@
         "loopscore": "./dist/index.js"
     },
     "scripts": {
-        "build": "tsc",
+        "build": "tsc && tsx scripts/generate-schema.ts",
         "dev": "tsx src/index.ts",
         "start": "node dist/index.js",
         "lint": "eslint src",
-        "run:example": "pnpm run dev run examples/caveman-skill.config.yaml",
-        "generate:schema": "tsx scripts/generate-schema.ts"
+        "run:example": "pnpm run dev run examples/caveman-skill.config.yaml"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.90.0",

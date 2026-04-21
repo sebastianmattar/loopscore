@@ -1,28 +1,7 @@
-acceptanceCriteria:
-  - 'GET /health returns 200 with {"status":"ok"}'
-  - GET /items returns an array (initially empty)
-  - POST /items creates an item and returns it with a unique id
-  - GET /items/:id returns the correct item or 404
-  - Code compiles and runs with ts-node or tsx
-  - A README.md is present with usage instructions
-
-checks:
-  - name: Builds?
-    command: npm run build
-    scoreIfPasses: 10
-    scoreIfFails: -10
-  - name: Always fails
-    command: exit 1
-    scoreIfPasses: 0
-    scoreIfFails: 10
-  - name: pnpm used?
-    command: (ls pnpm-lock.yaml && echo ok) || exit 1
-    scoreIfPasses: 10
-    scoreIfFails: -10
-  - name: Latest typescript version?
-    command: (pnpm outdated typescript && echo "good") || exit 1
-    scoreIfPasses: 10
-    scoreIfFails: -10
+options:
+  runCount: 1
+  parallel: true
+  outputDir: ./results
 
 variantDefaults:
   agent:
@@ -54,8 +33,33 @@ variants:
       before:
         - npx skills add https://github.com/JuliusBrussee/caveman/tree/main/skills/caveman
 
-runCount: 1
-parallel: true
-outputDir: ./results
-judge:
-  provider: copilot
+measure:
+  - type: judge
+    provider: copilot
+    acceptanceCriteria:
+      - 'GET /health returns 200 with {"status":"ok"}'
+      - GET /items returns an array (initially empty)
+      - POST /items creates an item and returns it with a unique id
+      - GET /items/:id returns the correct item or 404
+      - Code compiles and runs with ts-node or tsx
+      - A README.md is present with usage instructions
+  - type: shell
+    name: Builds?
+    command: npm run build
+    scoreIfPasses: 10
+    scoreIfFails: -10
+  - type: shell
+    name: Always fails
+    command: exit 1
+    scoreIfPasses: 0
+    scoreIfFails: 10
+  - type: shell
+    name: pnpm used?
+    command: (ls pnpm-lock.yaml && echo ok) || exit 1
+    scoreIfPasses: 10
+    scoreIfFails: -10
+  - type: shell
+    name: Latest typescript version?
+    command: (pnpm outdated typescript && echo "good") || exit 1
+    scoreIfPasses: 10
+    scoreIfFails: -10

@@ -9,13 +9,6 @@ const CommandsConfigSchema = z.object({
   after: z.array(z.string()).optional(),
 });
 
-const CheckConfigSchema = z.object({
-  name: z.string(),
-  command: z.string(),
-  scoreIfPasses: z.number(),
-  scoreIfFails: z.number(),
-});
-
 const SetupConfigSchema = z.object({
   files: z.record(z.string(), z.string()).optional(),
   commands: CommandsConfigSchema.optional(),
@@ -36,26 +29,37 @@ const VariantConfigSchema = z.object({
   setup: SetupConfigSchema.optional(),
   commands: CommandsConfigSchema.optional(),
   query: z.array(z.string()).optional(),
-  acceptanceCriteria: z.array(z.string()).optional(),
-  checks: z.array(CheckConfigSchema).optional(),
 });
 
 const VariantDefaultsSchema = VariantConfigSchema.omit({ name: true });
 
-const JudgeConfigSchema = z.object({
-  provider: z.enum(["copilot"]).default("copilot"),
-  model: z.string().optional(),
-});
+const MeasurementsSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("judge"),
+    provider: z.enum(["copilot"]).default("copilot"),
+    model: z.string().optional(),
+    acceptanceCriteria: z.array(z.string()).optional(),
+  }),
+  z.object({
+    type: z.literal("shell"),
+    name: z.string(),
+    command: z.string(),
+    scoreIfPasses: z.number(),
+    scoreIfFails: z.number(),
+  }),
+]);
 
-export const BenchConfigSchema = z.object({
-  variantDefaults: VariantDefaultsSchema.optional(),
-  variants: z.array(VariantConfigSchema),
-  acceptanceCriteria: z.array(z.string()),
-  checks: z.array(CheckConfigSchema).optional(),
+const RunOptionsSchema = z.object({
   runCount: z.number().int().min(1).default(3),
   parallel: z.boolean().default(true),
   outputDir: z.string().default("./results"),
-  judge: JudgeConfigSchema,
+});
+
+export const BenchConfigSchema = z.object({
+  options: RunOptionsSchema.optional(),
+  variantDefaults: VariantDefaultsSchema.optional(),
+  variants: z.array(VariantConfigSchema),
+  measure: z.array(MeasurementsSchema),
 });
 
 export function loadConfig(configPath: string): BenchConfig {
@@ -81,7 +85,15 @@ export function loadConfig(configPath: string): BenchConfig {
   return {
     ...parsed,
     name: benchName,
-    // Embed bench name into outputDir: <configured_dir>/<benchName>
-    outputDir: path.resolve(configDir, parsed.outputDir, benchName),
+    options: {
+      runCount: parsed.options?.runCount ?? 3,
+      parallel: parsed.options?.parallel ?? true,
+      // Embed bench name into outputDir: <configured_dir>/<benchName>
+      outputDir: path.resolve(
+        configDir,
+        parsed.options?.outputDir ?? "./results",
+        benchName,
+      ),
+    },
   };
 }

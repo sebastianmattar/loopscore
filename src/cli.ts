@@ -50,7 +50,7 @@ async function runAgentWithSpinner(
   prefixText: string,
 ): Promise<string | null> {
   if (!force) {
-    const existing = findCompletedRuns(variant.name, runs, config.outputDir);
+    const existing = findCompletedRuns(variant.name, runs, config.options!.outputDir);
     if (existing) {
       console.log(
         chalk.yellow(
@@ -109,7 +109,7 @@ async function runAgentWithSpinner(
   clearInterval(ticker);
   spinner.stop();
 
-  const summaryPath = writeSummary(results, config.outputDir, runSetId);
+  const summaryPath = writeSummary(results, config.options!.outputDir, runSetId);
   console.log(chalk.gray(`  Saved: ${summaryPath}`));
   console.log(`  Run set ID: ${chalk.cyan(runSetId)}`);
   return runSetId;
@@ -124,7 +124,7 @@ async function runAgentParallel(
   variantName: string,
 ): Promise<string | null> {
   if (!force) {
-    const existing = findCompletedRuns(variant.name, runs, config.outputDir);
+    const existing = findCompletedRuns(variant.name, runs, config.options!.outputDir);
     if (existing) {
       console.log(
         chalk.yellow(
@@ -175,7 +175,7 @@ async function runAgentParallel(
   );
 
   const totalElapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-  const summaryPath = writeSummary(results, config.outputDir, runSetId);
+  const summaryPath = writeSummary(results, config.options!.outputDir, runSetId);
   console.log(
     chalk.gray(
       `    ${variantName} finished in ${totalElapsed}s — saved: ${summaryPath}`,
@@ -208,7 +208,7 @@ export function buildCLI(): Command {
         },
       ) => {
         const config = loadConfig(configFile);
-        const runs = config.runCount ?? 3;
+        const runs = config.options!.runCount;
         const force = opts.force ?? false;
 
         await runHealthchecks(
@@ -217,7 +217,7 @@ export function buildCLI(): Command {
             .filter((a): a is AgentConfig => a?.type !== undefined),
         );
 
-        const parallel = config.parallel ?? true;
+        const parallel = config.options!.parallel;
         console.log(
           chalk.bold(
             `\nRunning ${config.variants.length} variant(s), ${runs} run(s) each${parallel ? " (parallel)" : ""}…`,
@@ -244,13 +244,13 @@ export function buildCLI(): Command {
         }
 
         // Write summary.md with ALL historical run sets (not just current run)
-        const allIds = listRunSets(config.outputDir);
+        const allIds = listRunSets(config.options!.outputDir);
         if (allIds.length > 0) {
           const summaries = allIds.map((id) =>
-            readSummary(id, config.outputDir),
+            readSummary(id, config.options!.outputDir),
           );
           const md = formatScoreboardMarkdown(summaries);
-          const summaryFile = path.join(config.outputDir, "summary.md");
+          const summaryFile = path.join(config.options!.outputDir, "summary.md");
           fs.writeFileSync(summaryFile, md, "utf-8");
           console.log(chalk.gray(`\n  Summary written: ${summaryFile}`));
         }
@@ -267,13 +267,13 @@ export function buildCLI(): Command {
     .action((configFile) => {
       const config = loadConfig(configFile as string);
 
-      const ids = listRunSets(config.outputDir);
+      const ids = listRunSets(config.options!.outputDir);
       if (ids.length === 0) {
         console.log(chalk.gray("No run sets found."));
         return;
       }
       for (const id of ids) {
-        const summary = readSummary(id, config.outputDir);
+        const summary = readSummary(id, config.options!.outputDir);
         console.log(formatReport(summary));
       }
     });
@@ -286,8 +286,8 @@ export function buildCLI(): Command {
     .option("-m, --markdown", "Output as Markdown instead of a terminal table")
     .action((configFile, opts: { markdown?: boolean }) => {
       const config = loadConfig(configFile as string);
-      const ids = listRunSets(config.outputDir);
-      const summaries = ids.map((id) => readSummary(id, config.outputDir));
+      const ids = listRunSets(config.options!.outputDir);
+      const summaries = ids.map((id) => readSummary(id, config.options!.outputDir));
       console.log(
         opts.markdown
           ? formatScoreboardMarkdown(summaries)
