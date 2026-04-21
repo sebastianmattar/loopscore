@@ -58,6 +58,7 @@ Benchmark results in the LLM world should be viewed as a **compass, not a GPS**.
 
 To get started, ensure your environment meets these requirements:
 
+- **OS**: Anything common and unix-based: macOS, Linux or WSL
 - **Runtime:** Node.js **22+** and pnpm **10+**.
 - **Agent Access:** Target Agent CLIs (e.g., `copilot`, `gemini`, `claude`) must be installed and accessible via your `$PATH`.
 - **Authentication:** Agents must be pre-authenticated. You can manage API keys and secrets using a standard `.env` file if you need to.

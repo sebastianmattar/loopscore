@@ -1,6 +1,7 @@
 import { execSync } from "child_process";
 import crypto from "crypto";
-import { getAgentVersion } from "../agents/base";
+import { toMerged } from "es-toolkit";
+
 import { getAdapter } from "../agents/index";
 import { collectMetrics } from "../metrics";
 import {
@@ -108,34 +109,19 @@ function parseTokenUsage(stdout: string): TokenUsage | null {
  */
 export async function runOnce(
   variant: VariantConfig,
-  agentConfig: AgentConfig,
   benchConfig: BenchConfig,
   options: RunOptions,
 ): Promise<RunResult> {
   const { runSetId, attemptNumber, onJudgeStart } = options;
   const runId = crypto.randomUUID();
 
-  // 1. Create isolated workspace
-  const mergedSetup = {
-    ...benchConfig.variantDefaults?.setup,
-    ...variant.setup,
-  };
-  const mergedQuery = [
-    ...(benchConfig.variantDefaults?.query ?? []),
-    ...(variant.query ?? []),
-  ];
-
   // Effective variant with merged setup and query (used for workspace creation and agent args)
-  const effectiveVariant = {
-    ...variant,
-    setup: Object.keys(mergedSetup).length > 0 ? mergedSetup : variant.setup,
-    query: mergedQuery.length > 0 ? mergedQuery : variant.query,
-  };
+  const effectiveVariant = toMerged(
+    benchConfig.variantDefaults ?? {},
+    variant,
+  ) as VariantConfig & { agent: AgentConfig };
 
-  const workspacePath = createWorkspace(
-    effectiveVariant,
-    Object.keys(mergedSetup).length > 0 ? mergedSetup : undefined,
-  );
+  const workspacePath = createWorkspace(effectiveVariant);
 
   // 2. Run before-commands in workspace (defaults merged with variant)
   const beforeCmds = [
@@ -147,13 +133,9 @@ export async function runOnce(
   }
 
   // 3. Invoke agent
-  const adapter = getAdapter(agentConfig);
-  const agentVersion = getAgentVersion(agentConfig);
-  const invokeResult = await adapter.invoke(
-    workspacePath,
-    effectiveVariant,
-    agentConfig,
-  );
+  const adapter = getAdapter(effectiveVariant!.agent!.type!);
+  const agentVersion = adapter.getVersion(effectiveVariant!.agent!);
+  const invokeResult = await adapter.invoke(workspacePath, effectiveVariant);
 
   // 4. Run after-commands in workspace (defaults merged with variant)
   const afterCmds = [
@@ -170,7 +152,7 @@ export async function runOnce(
     invokeResult.stdout,
     invokeResult.startedAt,
     invokeResult.completedAt,
-    agentConfig.costPerMillionTokens,
+    effectiveVariant.agent.costPerMillionTokens,
   );
 
   // 6. Score the output
@@ -196,13 +178,13 @@ export async function runOnce(
     runId,
     runSetId,
     variantName: variant.name,
-    agentName: agentConfig.name,
+    agentName: effectiveVariant.agent.type,
     agentVersion,
-    agentConfig,
+    agentConfig: effectiveVariant.agent,
     attemptNumber,
     startedAt: invokeResult.startedAt.toISOString(),
     completedAt: invokeResult.completedAt.toISOString(),
-    modelParams: buildModelParams(agentConfig),
+    modelParams: buildModelParams(effectiveVariant.agent),
     tokenUsage: parseTokenUsage(invokeResult.stdout),
     metrics,
     scoring,
@@ -238,19 +220,13 @@ export async function runOnce(
 /** Counts how many runs already exist for a (variantName, agentName, agentVersion) combo. */
 function countExistingRuns(
   variantName: string,
-  agentName: string,
-  agentVersion: string,
   outputDir: string,
 ): { count: number; runSetId: string | null } {
   let best: { count: number; runSetId: string } | null = null;
   for (const id of listRunSets(outputDir)) {
     try {
       const summary = readSummary(id, outputDir);
-      if (
-        summary.variantName === variantName &&
-        summary.agentName === agentName &&
-        summary.agentVersion === agentVersion
-      ) {
+      if (summary.variantName === variantName) {
         if (best === null || summary.totalRuns > best.count) {
           best = { count: summary.totalRuns, runSetId: id };
         }
@@ -264,7 +240,6 @@ function countExistingRuns(
 
 export async function runTask(
   variant: VariantConfig,
-  agentConfig: AgentConfig,
   benchConfig: BenchConfig,
   runs: number,
   runSetId: string,
@@ -275,11 +250,8 @@ export async function runTask(
 ): Promise<RunResult[]> {
   const results: RunResult[] = [];
 
-  const agentVersion = getAgentVersion(agentConfig);
   const { count: existingCount } = countExistingRuns(
     variant.name,
-    agentConfig.name,
-    agentVersion,
     benchConfig.outputDir,
   );
 
@@ -289,7 +261,7 @@ export async function runTask(
   for (let i = 1; i <= remaining; i++) {
     const attemptNumber = existingCount + i;
     onAttemptStart?.(attemptNumber, runs);
-    const result = await runOnce(variant, agentConfig, benchConfig, {
+    const result = await runOnce(variant, benchConfig, {
       runSetId,
       attemptNumber,
       variantName,

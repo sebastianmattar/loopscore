@@ -12,11 +12,11 @@ import { createSubprocessAdapter } from "./base";
  *
  * Requires: `gemini` CLI installed and `GEMINI_API_KEY` or `GOOGLE_API_KEY` set.
  */
-const base = createSubprocessAdapter("gemini", [
-  "-p",
-  "{requirementsContent}",
-  "--yolo",
-]);
+const base = createSubprocessAdapter("gemini", {
+  type: "gemini",
+  cmd: "gemini",
+  args: ["-p", "{requirementsContent}", "--yolo"],
+});
 
 const geminiAdapter: AgentAdapter = {
   ...base,

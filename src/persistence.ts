@@ -133,20 +133,13 @@ export function listRunSets(outputDir: string): string[] {
  */
 export function findCompletedRuns(
   variantName: string,
-  agentName: string,
-  agentVersion: string,
   minRuns: number,
   outputDir: string,
 ): RunSetSummary | undefined {
   for (const id of listRunSets(outputDir)) {
     try {
       const summary = readSummary(id, outputDir);
-      if (
-        summary.variantName === variantName &&
-        summary.agentName === agentName &&
-        summary.agentVersion === agentVersion &&
-        summary.totalRuns >= minRuns
-      ) {
+      if (summary.variantName === variantName && summary.totalRuns >= minRuns) {
         return summary;
       }
     } catch {

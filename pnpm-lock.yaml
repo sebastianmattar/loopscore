@@ -20,6 +20,9 @@ importers:
       commander:
         specifier: ^14.0.3
         version: 14.0.3
+      es-toolkit:
+        specifier: ^1.45.1
+        version: 1.45.1
       openai:
         specifier: ^6.34.0
         version: 6.34.0(zod@4.3.6)
@@ -445,6 +448,9 @@ packages:
 
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
+
+  es-toolkit@1.45.1:
+    resolution: {integrity: sha512-/jhoOj/Fx+A+IIyDNOvO3TItGmlMKhtX8ISAHKE90c4b/k1tqaqEZ+uUqfpU8DMnW5cgNJv606zS55jGvza0Xw==}
 
   esbuild@0.27.7:
     resolution: {integrity: sha512-IxpibTjyVnmrIQo5aqNpCgoACA/dTKLTlhMHihVHhdkxKyPO1uBBthumT0rdHmcsk9uMonIWS0m4FljWzILh3w==}
@@ -1110,6 +1116,8 @@ snapshots:
   deep-is@0.1.4: {}
 
   emoji-regex@8.0.0: {}
+
+  es-toolkit@1.45.1: {}
 
   esbuild@0.27.7:
     optionalDependencies:

@@ -3,9 +3,8 @@ import { Command } from "commander";
 import fs from "fs";
 import ora from "ora";
 import path from "path";
-import { getAgentVersion } from "./agents/base";
 import { getAdapter } from "./agents/index";
-import { loadConfig, resolveVariantAgentConfig } from "./config";
+import { loadConfig } from "./config";
 import {
   findCompletedRuns,
   listRunSets,
@@ -27,16 +26,16 @@ function makeRunSetId(variantName: string): string {
   return `${variantName}/${ts}`;
 }
 
-async function runHealthchecks(agents: AgentConfig[]): Promise<void> {
+async function runHealthchecks(agentConfigs: AgentConfig[]): Promise<void> {
   console.log(chalk.bold("\nRunning healthchecks…"));
-  for (const agentConfig of agents) {
-    const adapter = getAdapter(agentConfig);
+  for (const agentConfig of agentConfigs) {
+    const adapter = getAdapter(agentConfig.type);
     try {
       await adapter.healthcheck(agentConfig);
-      console.log(chalk.green(`  ✓ ${agentConfig.name}`));
+      console.log(chalk.green(`  ✓ ${agentConfig.type}`));
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error(chalk.red(`  ✗ ${agentConfig.name}: ${msg}`));
+      console.error(chalk.red(`  ✗ ${agentConfig.type}: ${msg}`));
       process.exit(1);
     }
   }
@@ -45,25 +44,17 @@ async function runHealthchecks(agents: AgentConfig[]): Promise<void> {
 /** Run one agent on one task, with an ora spinner (sequential mode). */
 async function runAgentWithSpinner(
   variant: VariantConfig,
-  agentConfig: AgentConfig,
   runs: number,
   config: ReturnType<typeof loadConfig>,
   force: boolean,
   prefixText: string,
 ): Promise<string | null> {
-  const agentVersion = getAgentVersion(agentConfig);
   if (!force) {
-    const existing = findCompletedRuns(
-      variant.name,
-      agentConfig.name,
-      agentVersion,
-      runs,
-      config.outputDir,
-    );
+    const existing = findCompletedRuns(variant.name, runs, config.outputDir);
     if (existing) {
       console.log(
         chalk.yellow(
-          `\n  Skipping "${variant.name}" / "${agentConfig.name}" ${agentVersion} — ` +
+          `\n  Skipping "${variant.name}" — ` +
             `already have ${existing.totalRuns} run(s) in ${existing.runSetId}. Use --force to override.`,
         ),
       );
@@ -82,7 +73,6 @@ async function runAgentWithSpinner(
 
   const results = await runTask(
     variant,
-    agentConfig,
     config,
     runs,
     runSetId,
@@ -128,21 +118,30 @@ async function runAgentWithSpinner(
 /** Run one agent on one task with plain log output (parallel mode). */
 async function runAgentParallel(
   variant: VariantConfig,
-  agentConfig: AgentConfig,
   runs: number,
   config: ReturnType<typeof loadConfig>,
   force: boolean,
   variantName: string,
 ): Promise<string | null> {
-  const label = variantName;
+  if (!force) {
+    const existing = findCompletedRuns(variant.name, runs, config.outputDir);
+    if (existing) {
+      console.log(
+        chalk.yellow(
+          `  Skipping "${variant.name}" — ` +
+            `already have ${existing.totalRuns} run(s) in ${existing.runSetId}. Use --force to override.`,
+        ),
+      );
+      return null;
+    }
+  }
 
   const runSetId = makeRunSetId(variantName);
   const startedAt = Date.now();
-  console.log(chalk.bold(`  ▶ ${label} starting…`));
+  console.log(chalk.bold(`  ▶ ${variantName} starting…`));
 
   const results = await runTask(
     variant,
-    agentConfig,
     config,
     runs,
     runSetId,
@@ -159,7 +158,7 @@ async function runAgentParallel(
           ? chalk.green(` score=${result.scoring.overall.toFixed(2)}`)
           : "";
       console.log(
-        chalk.green(`  ✓ ${label}`) +
+        chalk.green(`  ✓ ${variantName}`) +
           ` [${attempt}/${total}]` +
           ` time=${elapsed}s` +
           ` lines=${m.lineCount}` +
@@ -171,7 +170,7 @@ async function runAgentParallel(
     undefined,
     variantName,
     () => {
-      console.log(chalk.gray(`  ⚖ ${label} judging…`));
+      console.log(chalk.gray(`  ⚖ ${variantName} judging…`));
     },
   );
 
@@ -179,7 +178,7 @@ async function runAgentParallel(
   const summaryPath = writeSummary(results, config.outputDir, runSetId);
   console.log(
     chalk.gray(
-      `    ${label} finished in ${totalElapsed}s — saved: ${summaryPath}`,
+      `    ${variantName} finished in ${totalElapsed}s — saved: ${summaryPath}`,
     ),
   );
   return runSetId;
@@ -203,26 +202,20 @@ export function buildCLI(): Command {
     )
     .action(
       async (
-        configFile,
+        configFile: string,
         opts: {
           force?: boolean;
         },
       ) => {
-        const config = loadConfig(configFile as string);
+        const config = loadConfig(configFile);
         const runs = config.runCount ?? 3;
         const force = opts.force ?? false;
 
-        // Variant mode — resolve agent configs and deduplicate for healthchecks
-        const allVariantConfigs = config.variants.map((v) =>
-          resolveVariantAgentConfig(v, config.agents, config.variantDefaults),
+        await runHealthchecks(
+          config.variants
+            .map((v) => v.agent)
+            .filter((a): a is AgentConfig => a?.type !== undefined),
         );
-        const seenNames = new Set<string>();
-        const uniqueAgentConfigs = allVariantConfigs.filter((a) => {
-          if (seenNames.has(a.name)) return false;
-          seenNames.add(a.name);
-          return true;
-        });
-        await runHealthchecks(uniqueAgentConfigs);
 
         const parallel = config.parallel ?? true;
         console.log(
@@ -234,46 +227,19 @@ export function buildCLI(): Command {
         const runVariant = async (
           variant: (typeof config.variants)[0],
         ): Promise<string | null> => {
-          const agentConfig = resolveVariantAgentConfig(
-            variant,
-            config.agents,
-            config.variantDefaults,
-          );
-
           if (parallel) {
-            return runAgentParallel(
-              variant,
-              agentConfig,
-              runs,
-              config,
-              force,
-              variant.name,
-            );
+            return runAgentParallel(variant, runs, config, force, variant.name);
           } else {
             console.log(chalk.bold(`\n  Variant "${variant.name}"`));
-            return runAgentWithSpinner(
-              variant,
-              agentConfig,
-              runs,
-              config,
-              force,
-              "    ",
-            );
+            return runAgentWithSpinner(variant, runs, config, force, "    ");
           }
         };
 
-        let runSetIds: (string | null)[];
         if (parallel) {
-          const results = await Promise.allSettled(
-            config.variants.map(runVariant),
-          );
-          runSetIds = results.map((r) =>
-            r.status === "fulfilled" ? r.value : null,
-          );
+          await Promise.allSettled(config.variants.map(runVariant));
         } else {
-          runSetIds = [];
           for (const variant of config.variants) {
-            runSetIds.push(await runVariant(variant));
+            await runVariant(variant);
           }
         }
 

@@ -25,7 +25,8 @@ checks:
     scoreIfFails: -10
 
 variantDefaults:
-  agent: gemini
+  agent:
+    type: copilot
   setup:
     files:
       requirements.md: |

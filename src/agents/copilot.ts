@@ -15,15 +15,19 @@ import { createSubprocessAdapter } from "./base";
  *
  * Requires: `copilot` CLI installed and authenticated.
  */
-const copilotAdapter: AgentAdapter = createSubprocessAdapter("copilot", [
-  "-p",
-  "{requirementsContent}",
-  "--allow-all-tools",
-  "--allow-all-paths",
-  "--output-format",
-  "json",
-  "--config-dir",
-  "{workspacePath}",
-]);
+const copilotAdapter: AgentAdapter = createSubprocessAdapter("copilot", {
+  type: "copilot",
+  cmd: "copilot",
+  args: [
+    "-p",
+    "{requirementsContent}",
+    "--allow-all-tools",
+    "--allow-all-paths",
+    "--output-format",
+    "json",
+    "--config-dir",
+    "{workspacePath}",
+  ],
+});
 
 export default copilotAdapter;

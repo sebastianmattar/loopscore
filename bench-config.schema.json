@@ -1,7 +1,344 @@
 {
-  "$ref": "#/definitions/BenchConfig",
-  "definitions": {
-    "BenchConfig": {}
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "variantDefaults": {
+      "type": "object",
+      "properties": {
+        "agent": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "cmd": {
+              "type": "string"
+            },
+            "args": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "model": {
+              "type": "string"
+            },
+            "model_params": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {}
+            },
+            "costPerMillionTokens": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false
+        },
+        "setup": {
+          "type": "object",
+          "properties": {
+            "files": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "commands": {
+              "type": "object",
+              "properties": {
+                "before": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "after": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "commands": {
+          "type": "object",
+          "properties": {
+            "before": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "after": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "query": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "acceptanceCriteria": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              },
+              "scoreIfPasses": {
+                "type": "number"
+              },
+              "scoreIfFails": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "name",
+              "command",
+              "scoreIfPasses",
+              "scoreIfFails"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "agent": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "cmd": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "model": {
+                "type": "string"
+              },
+              "model_params": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              },
+              "costPerMillionTokens": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          },
+          "setup": {
+            "type": "object",
+            "properties": {
+              "files": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "commands": {
+                "type": "object",
+                "properties": {
+                  "before": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "after": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "commands": {
+            "type": "object",
+            "properties": {
+              "before": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "after": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "acceptanceCriteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "command": {
+                  "type": "string"
+                },
+                "scoreIfPasses": {
+                  "type": "number"
+                },
+                "scoreIfFails": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "name",
+                "command",
+                "scoreIfPasses",
+                "scoreIfFails"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "acceptanceCriteria": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "scoreIfPasses": {
+            "type": "number"
+          },
+          "scoreIfFails": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "command",
+          "scoreIfPasses",
+          "scoreIfFails"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "runCount": {
+      "default": 3,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "parallel": {
+      "default": true,
+      "type": "boolean"
+    },
+    "outputDir": {
+      "default": "./results",
+      "type": "string"
+    },
+    "judge": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "default": "copilot",
+          "type": "string",
+          "enum": [
+            "copilot"
+          ]
+        },
+        "model": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider"
+      ],
+      "additionalProperties": false
+    }
   },
-  "$schema": "http://json-schema.org/draft-07/schema#"
+  "required": [
+    "variants",
+    "acceptanceCriteria",
+    "runCount",
+    "parallel",
+    "outputDir",
+    "judge"
+  ],
+  "additionalProperties": false
 }

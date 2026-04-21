@@ -1,6 +1,4 @@
-import type { AgentAdapter, AgentConfig } from "../types";
-import { createSubprocessAdapter } from "./base";
-import claudeAdapter from "./claude";
+import type { AgentAdapter } from "../types";
 import copilotAdapter from "./copilot";
 import geminiAdapter from "./gemini";
 
@@ -11,7 +9,6 @@ import geminiAdapter from "./gemini";
 const BUILT_IN_ADAPTERS: Record<string, AgentAdapter> = {
   copilot: copilotAdapter,
   gemini: geminiAdapter,
-  claude: claudeAdapter,
 };
 
 /**
@@ -19,21 +16,12 @@ const BUILT_IN_ADAPTERS: Record<string, AgentAdapter> = {
  * Falls back to a generic subprocess adapter if no named adapter is registered,
  * allowing arbitrary CLI agents to be used via bench.config.json alone.
  */
-export function getAdapter(config: AgentConfig): AgentAdapter {
-  const adapter = BUILT_IN_ADAPTERS[config.name];
-  if (adapter) {
-    return adapter;
+export function getAdapter(agentType: string): AgentAdapter {
+  const adapter = BUILT_IN_ADAPTERS[agentType];
+  if (!adapter) {
+    throw new Error("Could not find agent adapter for " + agentType + ".");
   }
-
-  // Generic fallback: use cmd + args from config as-is
-  if (!config.args) {
-    throw new Error(
-      `No built-in adapter found for agent "${config.name}" and no "args" defined in config. ` +
-        `Either register a built-in adapter in src/agents/index.ts or add "args" to the agent config.`,
-    );
-  }
-
-  return createSubprocessAdapter(config.name, config.args);
+  return adapter;
 }
 
 export function listAdapterNames(): string[] {

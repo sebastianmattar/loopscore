@@ -15,9 +15,9 @@ export interface CommandsConfig {
 }
 
 export interface AgentConfig {
-  name: string;
+  type: string;
   /** Executable name, e.g. "copilot" or "gemini" */
-  cmd: string;
+  cmd?: string;
   /**
    * CLI args. Supports template variables:
    *   {workspacePath}     – absolute path to workspace root
@@ -38,10 +38,11 @@ export interface AgentAdapter {
    * Should throw an Error with a human-readable message if not healthy.
    */
   healthcheck(config: AgentConfig): Promise<void>;
+  /** Returns the installed version string, or "unknown" on failure. */
+  getVersion(config: AgentConfig): string;
   invoke(
     workspacePath: string,
     variant: VariantConfig,
-    agentConfig: AgentConfig,
   ): Promise<AgentInvokeResult>;
 }
 
@@ -181,20 +182,10 @@ export interface CheckConfig {
  */
 export interface VariantConfig {
   name: string;
-  /** Agent name — must match a built-in adapter or an entry in the agents list */
-  agent?: string;
-  /** Override the agent executable */
-  cmd?: string;
-  /** Override the agent CLI args */
-  args?: string[];
-  /** Overrides the agent's default model */
-  model?: string;
-  /** Merged on top of the agent's model_params */
-  model_params?: Record<string, unknown>;
+
+  agent?: Partial<AgentConfig>;
   /** Overrides / extends the agent's setup config */
-  setup?: SetupConfig;
-  /** USD cost per 1 million tokens */
-  costPerMillionTokens?: number;
+  setup?: Partial<SetupConfig>;
   /** Prompts that will be sent to the agent to work on the benchmark */
   query?: string[];
   /** Shell commands to run in workspace before/after the agent */
@@ -213,7 +204,7 @@ export type VariantDefaults = Omit<VariantConfig, "name">;
 
 export interface BenchConfig {
   name: string;
-  agents: AgentConfig[];
+
   variantDefaults?: VariantDefaults;
   variants: VariantConfig[];
   acceptanceCriteria: string[];

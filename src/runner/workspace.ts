@@ -2,7 +2,7 @@ import { execSync } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import type { SetupConfig, VariantConfig } from "../types";
+import type { VariantConfig } from "../types";
 
 /**
  * Creates a fresh isolated workspace for a single run:
@@ -11,10 +11,7 @@ import type { SetupConfig, VariantConfig } from "../types";
  *   3. Writes requirements.md from setup.query
  *   4. Writes any additional files defined in setup.files
  */
-export function createWorkspace(
-  variant: VariantConfig,
-  setup?: SetupConfig,
-): string {
+export function createWorkspace(variant: VariantConfig): string {
   const workspacePath = fs.mkdtempSync(
     path.join(os.tmpdir(), `loopscore-${variant.name}-`),
   );
@@ -61,7 +58,7 @@ export function createWorkspace(
   });
 
   // Write additional files defined in setup.files (includes requirements.md if defined)
-  for (const [relPath, content] of Object.entries(setup?.files ?? {})) {
+  for (const [relPath, content] of Object.entries(variant.setup?.files ?? {})) {
     const dest = path.join(workspacePath, relPath);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.writeFileSync(dest, content, "utf-8");
