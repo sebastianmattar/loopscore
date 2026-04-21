@@ -196,21 +196,8 @@ export function saveWorkspaceFiles(
   outputDir: string,
 ): void {
   const dest = path.join(outputDir, runSetId, `run-${attemptNumber}-workspace`);
-  copyDirExcludeGit(workspacePath, dest);
-}
-
-function copyDirExcludeGit(src: string, dest: string): void {
-  fs.mkdirSync(dest, { recursive: true });
-  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
-    if (entry.name === ".git") continue;
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
-    if (entry.isDirectory()) {
-      copyDirExcludeGit(srcPath, destPath);
-    } else {
-      fs.copyFileSync(srcPath, destPath);
-    }
-  }
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.renameSync(workspacePath, dest);
 }
 
 /**

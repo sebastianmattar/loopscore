@@ -199,14 +199,14 @@ export function formatScoreboardMarkdown(summaries: RunSetSummary[]): string {
       : "—";
     const time = formatMean(s.metrics.timeMs);
     const lines = formatMean(s.metrics.lineCount);
-    return `| ${s.agentName} | ${s.variantName} | ${score} | ${llmJudge} | ${checks} | ${time} | ${lines} | ${cost} | ${s.totalRuns} | ${s.runSetId} |`;
+    return `| ${s.agentName} | ${s.variantName} | ${score} | ${llmJudge} | ${checks} | ${time} | ${lines} | ${cost} | ${s.totalRuns} |`;
   });
 
   const lines: string[] = [
     "# Scoreboard",
     "",
-    "| Agent | Variant | Overall | LLM Judge | Checks | Time (ms) | Lines | Est. cost | Runs | Run Set |",
-    "|-------|---------|--------:|----------:|-------:|----------:|------:|-----------|-----:|---------||",
+    "| Agent | Variant | Overall | LLM Judge | Checks | Time (ms) | Lines | Est. cost | Runs |",
+    "|-------|---------|--------:|----------:|-------:|----------:|------:|-----------|-----:|",
     ...rows,
     "",
   ];
