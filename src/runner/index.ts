@@ -157,11 +157,7 @@ export async function runOnce(
 
   // 6. Score the output
   onJudgeStart?.();
-  const scoring = await scoreRun(
-    workspacePath,
-    benchConfig,
-    invokeResult,
-  );
+  const scoring = await scoreRun(workspacePath, benchConfig, invokeResult);
 
   const result: RunResult = {
     runId,
@@ -193,12 +189,7 @@ export async function runOnce(
     invokeResult.stderr,
     outputDir,
   );
-  saveWorkspaceFiles(
-    runSetId,
-    attemptNumber,
-    workspacePath,
-    outputDir,
-  );
+  saveWorkspaceFiles(runSetId, attemptNumber, workspacePath, outputDir);
   writeJudgeNotes(runSetId, attemptNumber, result, outputDir);
 
   return result;

@@ -50,7 +50,11 @@ async function runAgentWithSpinner(
   prefixText: string,
 ): Promise<string | null> {
   if (!force) {
-    const existing = findCompletedRuns(variant.name, runs, config.options!.outputDir);
+    const existing = findCompletedRuns(
+      variant.name,
+      runs,
+      config.options!.outputDir,
+    );
     if (existing) {
       console.log(
         chalk.yellow(
@@ -109,7 +113,11 @@ async function runAgentWithSpinner(
   clearInterval(ticker);
   spinner.stop();
 
-  const summaryPath = writeSummary(results, config.options!.outputDir, runSetId);
+  const summaryPath = writeSummary(
+    results,
+    config.options!.outputDir,
+    runSetId,
+  );
   console.log(chalk.gray(`  Saved: ${summaryPath}`));
   console.log(`  Run set ID: ${chalk.cyan(runSetId)}`);
   return runSetId;
@@ -124,7 +132,11 @@ async function runAgentParallel(
   variantName: string,
 ): Promise<string | null> {
   if (!force) {
-    const existing = findCompletedRuns(variant.name, runs, config.options!.outputDir);
+    const existing = findCompletedRuns(
+      variant.name,
+      runs,
+      config.options!.outputDir,
+    );
     if (existing) {
       console.log(
         chalk.yellow(
@@ -175,7 +187,11 @@ async function runAgentParallel(
   );
 
   const totalElapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-  const summaryPath = writeSummary(results, config.options!.outputDir, runSetId);
+  const summaryPath = writeSummary(
+    results,
+    config.options!.outputDir,
+    runSetId,
+  );
   console.log(
     chalk.gray(
       `    ${variantName} finished in ${totalElapsed}s — saved: ${summaryPath}`,
@@ -236,7 +252,18 @@ export function buildCLI(): Command {
         };
 
         if (parallel) {
-          await Promise.allSettled(config.variants.map(runVariant));
+          const settled = await Promise.allSettled(
+            config.variants.map(runVariant),
+          );
+          for (const r of settled) {
+            if (r.status === "rejected") {
+              console.error(
+                chalk.red(
+                  `  ✗ variant failed: ${(r.reason as Error).message ?? r.reason}`,
+                ),
+              );
+            }
+          }
         } else {
           for (const variant of config.variants) {
             await runVariant(variant);
@@ -250,7 +277,10 @@ export function buildCLI(): Command {
             readSummary(id, config.options!.outputDir),
           );
           const md = formatScoreboardMarkdown(summaries);
-          const summaryFile = path.join(config.options!.outputDir, "summary.md");
+          const summaryFile = path.join(
+            config.options!.outputDir,
+            "summary.md",
+          );
           fs.writeFileSync(summaryFile, md, "utf-8");
           console.log(chalk.gray(`\n  Summary written: ${summaryFile}`));
         }
@@ -287,7 +317,9 @@ export function buildCLI(): Command {
     .action((configFile, opts: { markdown?: boolean }) => {
       const config = loadConfig(configFile as string);
       const ids = listRunSets(config.options!.outputDir);
-      const summaries = ids.map((id) => readSummary(id, config.options!.outputDir));
+      const summaries = ids.map((id) =>
+        readSummary(id, config.options!.outputDir),
+      );
       console.log(
         opts.markdown
           ? formatScoreboardMarkdown(summaries)

@@ -49,14 +49,15 @@ export function createSubprocessAdapter(
       workspacePath: string,
       variant: VariantConfig,
     ): Promise<AgentInvokeResult> {
+      const resolvedAgent = { ...defaultConfig, ...variant.agent };
       const requirementsContent = variant.query?.join("\n") ?? "";
-      const rawArgs = variant.agent?.args ?? [];
+      const rawArgs = resolvedAgent.args ?? [];
       const resolvedArgs = rawArgs.map((arg) =>
         arg
           .replace("{requirementsContent}", requirementsContent)
           .replace("{workspacePath}", workspacePath),
       );
-      return spawnAgent(variant.agent!.cmd!, resolvedArgs, workspacePath);
+      return spawnAgent(resolvedAgent.cmd!, resolvedArgs, workspacePath);
     },
   };
 }

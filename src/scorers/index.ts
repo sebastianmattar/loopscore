@@ -86,7 +86,10 @@ type ShellMeasure = Measurements & { type: "shell" };
  * Runs shell-command checks in the agent workspace and returns a TestResult[].
  * Each check passes if the command exits with code 0.
  */
-function runChecks(checks: ShellMeasure[], workspacePath: string): TestResult[] {
+function runChecks(
+  checks: ShellMeasure[],
+  workspacePath: string,
+): TestResult[] {
   const results: TestResult[] = [];
 
   for (const check of checks) {
