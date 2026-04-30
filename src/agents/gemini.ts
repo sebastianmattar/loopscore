@@ -1,7 +1,11 @@
 import type { AgentAdapter, AgentConfig } from "../types";
 import { createSubprocessAdapter } from "./base";
 
-function pushRepeatableFlag(args: string[], flag: string, values: unknown): void {
+function pushRepeatableFlag(
+  args: string[],
+  flag: string,
+  values: unknown,
+): void {
   if (!Array.isArray(values)) return;
   for (const value of values) {
     if (typeof value !== "string") continue;
@@ -61,7 +65,8 @@ const base = createSubprocessAdapter(
     pushRepeatableFlag(args, "--allowed-tools", options.allowedTools);
     pushRepeatableFlag(args, "--extensions", options.extensions);
 
-    if (typeof options.resume === "string") args.push("--resume", options.resume);
+    if (typeof options.resume === "string")
+      args.push("--resume", options.resume);
 
     pushRepeatableFlag(
       args,
