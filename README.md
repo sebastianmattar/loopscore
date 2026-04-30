@@ -77,3 +77,19 @@ To get started, ensure your environment meets these requirements:
 - **Runtime:** Node.js **22+**
 - **Agent Access:** Target Agent CLIs (e.g., `copilot`, `gemini`, `claude`) must be installed and accessible via your `$PATH`.
 - **Authentication:** Agents must be pre-authenticated. You can manage API keys and secrets using a standard `.env` file if you need to.
+
+---
+
+## 🚀 Getting Started
+
+Initialize a workspace with the schema, VS Code YAML settings, starter skill, and example benchmark:
+
+```bash
+npx loopscore init
+```
+
+Then run the bundled example benchmark:
+
+```bash
+npx loopscore run benchmarks/caveman-skill.config.yaml
+```

@@ -2,8 +2,8 @@ import { execSync } from "child_process";
 import crypto from "crypto";
 import { toMerged } from "es-toolkit";
 
-import { getAdapter } from "../agents/index";
-import { collectMetrics } from "../metrics";
+import { getAdapter } from "../agents/index.js";
+import { collectMetrics } from "../metrics.js";
 import {
   listRunSets,
   readSummary,
@@ -11,8 +11,8 @@ import {
   writeAgentLogs,
   writeJudgeNotes,
   writeRun,
-} from "../persistence";
-import { scoreRun } from "../scorers/index";
+} from "../persistence.js";
+import { scoreRun } from "../scorers/index.js";
 import type {
   AgentConfig,
   BenchConfig,
@@ -20,8 +20,8 @@ import type {
   RunResult,
   TokenUsage,
   VariantConfig,
-} from "../types";
-import { createWorkspace } from "./workspace";
+} from "../types.js";
+import { createWorkspace } from "./workspace.js";
 
 export interface RunOptions {
   runSetId: string;

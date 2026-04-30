@@ -2,7 +2,7 @@ import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
-import type { ComplexityResult, Metrics } from "./types";
+import type { ComplexityResult, Metrics } from "./types.js";
 
 // ── Public API ────────────────────────────────────────────────────────────────
 

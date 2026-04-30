@@ -1,5 +1,5 @@
-import type { AgentAdapter, AgentConfig } from "../types";
-import { createSubprocessAdapter } from "./base";
+import type { AgentAdapter, AgentConfig } from "../types.js";
+import { createSubprocessAdapter } from "./base.js";
 
 function pushRepeatableFlag(
   args: string[],

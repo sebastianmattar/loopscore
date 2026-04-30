@@ -1,11 +1,11 @@
 import { execFileSync } from "child_process";
-import { spawnAgent } from "../runner/subprocess";
+import { spawnAgent } from "../runner/subprocess.js";
 import type {
   AgentAdapter,
   AgentConfig,
   AgentInvokeResult,
   VariantConfig,
-} from "../types";
+} from "../types.js";
 
 export function createSubprocessAdapter(
   adapterName: string,

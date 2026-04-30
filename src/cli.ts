@@ -3,8 +3,8 @@ import { Command } from "commander";
 import fs from "fs";
 import ora from "ora";
 import path from "path";
-import { getAdapter } from "./agents/index";
-import { loadConfig } from "./config";
+import { getAdapter } from "./agents/index.js";
+import { loadConfig } from "./config.js";
 import {
   findCompletedRuns,
   listRunFiles,
@@ -12,15 +12,15 @@ import {
   readRun,
   readSummary,
   writeSummary,
-} from "./persistence";
+} from "./persistence.js";
 import {
   formatReport,
   formatRunDetailsMarkdown,
   formatScoreboard,
   formatScoreboardMarkdown,
-} from "./report";
-import { runTask } from "./runner/index";
-import type { AgentConfig, VariantConfig } from "./types";
+} from "./report.js";
+import { runTask } from "./runner/index.js";
+import type { AgentConfig, VariantConfig } from "./types.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -306,7 +306,7 @@ export function buildCLI(): Command {
           );
           const runsByVariant = new Map<
             string,
-            import("./types").RunResult[]
+            import("./types.js").RunResult[]
           >();
           for (const id of allIds) {
             for (const filePath of listRunFiles(

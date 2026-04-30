@@ -1,5 +1,5 @@
 import { spawn } from "child_process";
-import type { AgentInvokeResult } from "../types";
+import type { AgentInvokeResult } from "../types.js";
 
 /**
  * Spawns an agent CLI subprocess in the given working directory.

@@ -1,6 +1,6 @@
-import type { AgentAdapter } from "../types";
-import copilotAdapter from "./copilot";
-import geminiAdapter from "./gemini";
+import type { AgentAdapter } from "../types.js";
+import copilotAdapter from "./copilot.js";
+import geminiAdapter from "./gemini.js";
 
 /**
  * Built-in adapters. Keys match the `name` field in AgentConfig.

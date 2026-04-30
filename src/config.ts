@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
-import type { BenchConfig } from "./types";
+import type { BenchConfig } from "./types.js";
 
 const CommandsConfigSchema = z.object({
   before: z.array(z.string()).optional(),

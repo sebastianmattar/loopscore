@@ -7,8 +7,8 @@ import type {
   Measurements,
   ScoringResult,
   TestResult,
-} from "../types";
-import { runLLMJudge } from "./llm-judge";
+} from "../types.js";
+import { runLLMJudge } from "./llm-judge.js";
 
 /**
  * Returns the set of absolute file paths that were added or modified

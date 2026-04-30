@@ -2,7 +2,7 @@ import { execSync } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import type { VariantConfig } from "../types";
+import type { VariantConfig } from "../types.js";
 
 /**
  * Creates a fresh isolated workspace for a single run:
