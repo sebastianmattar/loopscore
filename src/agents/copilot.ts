@@ -5,29 +5,33 @@ import { createSubprocessAdapter } from "./base";
  * GitHub Copilot agent adapter.
  *
  * Default invocation (configurable via bench.config.json):
- *   copilot -p "{requirementsContent}" --allow-all-tools --allow-all-paths --output-format json
- *                                        --config-dir {workspacePath}
+ *   copilot -p "{requirementsContent}" [--allow-all-tools] [--allow-all-paths]
+ *           [--output-format json] [--config-dir {workspacePath}]
  *
- * --allow-all-tools  is required for non-interactive (headless) mode.
- * --allow-all-paths  allows writing anywhere in the workspace without prompts.
- * --output-format json  emits JSONL progress events to stdout for metrics.
- * --config-dir {workspacePath}  isolates from global ~/.copilot/ skills/MCP config.
- *
+ * Options can be overridden via the `agent.options` field in bench config.
  * Requires: `copilot` CLI installed and authenticated.
  */
-const copilotAdapter: AgentAdapter = createSubprocessAdapter("copilot", {
-  type: "copilot",
-  cmd: "copilot",
-  args: [
-    "-p",
-    "{requirementsContent}",
-    "--allow-all-tools",
-    "--allow-all-paths",
-    "--output-format",
-    "json",
-    "--config-dir",
-    "{workspacePath}",
-  ],
-});
+const copilotAdapter: AgentAdapter = createSubprocessAdapter(
+  "copilot",
+  {
+    type: "copilot",
+    cmd: "copilot",
+    args: ["-p", "{requirementsContent}"],
+  },
+  (options, workspacePath) => {
+    const args: string[] = [];
+    if (options.allowAllTools !== false) args.push("--allow-all-tools");
+    if (options.allowAllPaths !== false) args.push("--allow-all-paths");
+    const fmt =
+      typeof options.outputFormat === "string" ? options.outputFormat : "json";
+    args.push("--output-format", fmt);
+    const configDir =
+      typeof options.configDir === "string"
+        ? options.configDir.replace("{workspacePath}", workspacePath)
+        : workspacePath;
+    args.push("--config-dir", configDir);
+    return args;
+  },
+);
 
 export default copilotAdapter;

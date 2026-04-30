@@ -20,6 +20,8 @@ In the rapidly evolving AI landscape, "vibes-based" testing eventually hits a wa
 
 The tool executes a standardized set of commands across multiple **agentic environments**. Once the agents complete their tasks, `loopscore` aggregates the data and runs an evaluation suite:
 
+For each run the process is as follows:
+
 #### 1. Set up workspace
 
 - Inject files such as (AGENTS.md, REQUIREMENTS.md)
@@ -33,12 +35,13 @@ The tool executes a standardized set of commands across multiple **agentic envir
 
 The generated results will be analyzed according to the following metrics.
 
-| Metric              | Description                                                                                              |
-| :------------------ | :------------------------------------------------------------------------------------------------------- |
-| **Efficiency**      | Total tokens consumed vs. wall-clock time taken. (Lower is better)                                       |
-| **Output Volume**   | Lines of code (LOC) generated to solve the problem. (Lower is better)                                    |
-| **Code Complexity** | Structural analysis of the resulting code. (Lower is better)                                             |
-| **Requirement Fit** | An **Agentic Judge** reviews the output against the original prompt to score success. (Higher is better) |
+| Metric               | Description                                                                                              |
+| :------------------- | :------------------------------------------------------------------------------------------------------- |
+| **Efficiency**       | Total tokens consumed vs. wall-clock time taken. (Lower is better)                                       |
+| **Output Volume**    | Lines of code (LOC) generated to solve the problem. (Lower is better)                                    |
+| **Code Complexity**  | Structural analysis of the resulting code. (Lower is better)                                             |
+| **Requirement Fit**  | An **Agentic Judge** reviews the output against the original prompt to score success. (Higher is better) |
+| **Shell Test Cases** | You can run run shell commands and evaluate the return code to generate a score. (Higher is better)      |
 
 ---
 

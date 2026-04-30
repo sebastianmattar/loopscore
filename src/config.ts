@@ -14,6 +14,17 @@ const SetupConfigSchema = z.object({
   commands: CommandsConfigSchema.optional(),
 });
 
+const CopilotAgentOptionsSchema = z.object({
+  allowAllTools: z.boolean().optional(),
+  allowAllPaths: z.boolean().optional(),
+  outputFormat: z.enum(["json", "text"]).optional(),
+  configDir: z.string().optional(),
+});
+
+const GeminiAgentOptionsSchema = z.object({
+  yolo: z.boolean().optional(),
+});
+
 const AgentConfigSchema = z.object({
   type: z.string(),
   cmd: z.string().optional(),
@@ -21,6 +32,9 @@ const AgentConfigSchema = z.object({
   model: z.string().optional(),
   model_params: z.record(z.string(), z.unknown()).optional(),
   costPerMillionTokens: z.number().optional(),
+  options: z
+    .union([CopilotAgentOptionsSchema, GeminiAgentOptionsSchema])
+    .optional(),
 });
 
 const VariantConfigSchema = z.object({
@@ -56,6 +70,7 @@ const RunOptionsSchema = z.object({
 });
 
 export const BenchConfigSchema = z.object({
+  description: z.string().optional(),
   options: RunOptionsSchema.optional(),
   variantDefaults: VariantDefaultsSchema.optional(),
   variants: z.array(VariantConfigSchema),

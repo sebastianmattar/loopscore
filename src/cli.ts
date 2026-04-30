@@ -7,12 +7,15 @@ import { getAdapter } from "./agents/index";
 import { loadConfig } from "./config";
 import {
   findCompletedRuns,
+  listRunFiles,
   listRunSets,
+  readRun,
   readSummary,
   writeSummary,
 } from "./persistence";
 import {
   formatReport,
+  formatRunDetailsMarkdown,
   formatScoreboard,
   formatScoreboardMarkdown,
 } from "./report";
@@ -276,7 +279,25 @@ export function buildCLI(): Command {
           const summaries = allIds.map((id) =>
             readSummary(id, config.options!.outputDir),
           );
-          const md = formatScoreboardMarkdown(summaries);
+          const runsByVariant = new Map<
+            string,
+            import("./types").RunResult[]
+          >();
+          for (const id of allIds) {
+            for (const filePath of listRunFiles(
+              id,
+              config.options!.outputDir,
+            )) {
+              const run = readRun(filePath);
+              const group = runsByVariant.get(run.variantName) ?? [];
+              group.push(run);
+              runsByVariant.set(run.variantName, group);
+            }
+          }
+          const md =
+            formatScoreboardMarkdown(summaries, config.description) +
+            "\n" +
+            formatRunDetailsMarkdown(runsByVariant);
           const summaryFile = path.join(
             config.options!.outputDir,
             "summary.md",
@@ -322,8 +343,97 @@ export function buildCLI(): Command {
       );
       console.log(
         opts.markdown
-          ? formatScoreboardMarkdown(summaries)
+          ? formatScoreboardMarkdown(summaries, config.description)
           : formatScoreboard(summaries),
+      );
+    });
+
+  // ── init ──────────────────────────────────────────────────────────────────
+  program
+    .command("init")
+    .description(
+      "Set up .vscode/ settings and copy bench-config.schema.json into the current directory",
+    )
+    .action(() => {
+      const cwd = process.cwd();
+      const vscodeDir = path.join(cwd, ".vscode");
+      fs.mkdirSync(vscodeDir, { recursive: true });
+
+      // ── Copy schema ──────────────────────────────────────────────────────
+      const schemaSource = path.resolve(
+        import.meta.dirname ?? path.dirname(new URL(import.meta.url).pathname),
+        "../bench-config.schema.json",
+      );
+      const schemaDest = path.join(cwd, "bench-config.schema.json");
+      fs.copyFileSync(schemaSource, schemaDest);
+      console.log(chalk.green(`  ✓ Written: ${schemaDest}`));
+
+      // ── extensions.json ──────────────────────────────────────────────────
+      const extFile = path.join(vscodeDir, "extensions.json");
+      const recommendedExt = "redhat.vscode-yaml";
+      let extJson: { recommendations?: string[] } = {};
+      if (fs.existsSync(extFile)) {
+        try {
+          extJson = JSON.parse(fs.readFileSync(extFile, "utf-8")) as {
+            recommendations?: string[];
+          };
+        } catch {
+          // malformed – start fresh
+        }
+      }
+      const recs = extJson.recommendations ?? [];
+      if (!recs.includes(recommendedExt)) {
+        recs.push(recommendedExt);
+        extJson.recommendations = recs;
+        fs.writeFileSync(
+          extFile,
+          JSON.stringify(extJson, null, 2) + "\n",
+          "utf-8",
+        );
+        console.log(chalk.green(`  ✓ Updated: ${extFile}`));
+      } else {
+        console.log(chalk.gray(`  – Already present: ${extFile}`));
+      }
+
+      // ── settings.json ────────────────────────────────────────────────────
+      const settingsFile = path.join(vscodeDir, "settings.json");
+      let settingsJson: Record<string, unknown> = {};
+      if (fs.existsSync(settingsFile)) {
+        try {
+          settingsJson = JSON.parse(
+            fs.readFileSync(settingsFile, "utf-8"),
+          ) as Record<string, unknown>;
+        } catch {
+          // malformed – start fresh
+        }
+      }
+      const yamlSchemas = (settingsJson["yaml.schemas"] ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const schemaKey = "./bench-config.schema.json";
+      const schemaGlob = "*.config.yaml";
+      const existing = yamlSchemas[schemaKey];
+      const alreadySet =
+        existing === schemaGlob ||
+        (Array.isArray(existing) && existing.includes(schemaGlob));
+      if (!alreadySet) {
+        yamlSchemas[schemaKey] = schemaGlob;
+        settingsJson["yaml.schemas"] = yamlSchemas;
+        fs.writeFileSync(
+          settingsFile,
+          JSON.stringify(settingsJson, null, 2) + "\n",
+          "utf-8",
+        );
+        console.log(chalk.green(`  ✓ Updated: ${settingsFile}`));
+      } else {
+        console.log(chalk.gray(`  – Already present: ${settingsFile}`));
+      }
+
+      console.log(
+        chalk.bold(
+          "\n  Done. Open the folder in VS Code to get YAML autocomplete for bench config files.",
+        ),
       );
     });
 

@@ -1,2 +1,4 @@
-- [x] move getAgentVersion into AgentAdapter
--
+- [x] Extend the BenchConfig type and add a "description" property. Use it in the summary.md
+- [x] The summary.md should also contain detailed information about each run, group by variation.
+- [x] Configuration options can vary by tool. Relevant options should be made available as typed options in the schema and passed through to the agent CLI
+- [x] Create an init command: Should create a .vscode directory and make sure that the extensions receommandations and settings exist. If the files do not exist, create them. If they exist, add/update the settings. Place the bench-config.schema.json in the current directory.

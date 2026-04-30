@@ -14,6 +14,22 @@ export interface CommandsConfig {
   after?: string[];
 }
 
+export interface CopilotAgentOptions {
+  /** Pass --allow-all-tools (default: true) */
+  allowAllTools?: boolean;
+  /** Pass --allow-all-paths (default: true) */
+  allowAllPaths?: boolean;
+  /** Pass --output-format (default: "json") */
+  outputFormat?: "json" | "text";
+  /** Pass --config-dir. Supports {workspacePath} template. Defaults to workspace path. */
+  configDir?: string;
+}
+
+export interface GeminiAgentOptions {
+  /** Pass --yolo to auto-approve all tool actions (default: true) */
+  yolo?: boolean;
+}
+
 export interface AgentConfig {
   type: string;
   /** Executable name, e.g. "copilot" or "gemini" */
@@ -28,6 +44,8 @@ export interface AgentConfig {
   model_params?: Record<string, unknown>;
   /** USD cost per 1 million tokens, used for cost estimation. */
   costPerMillionTokens?: number;
+  /** Tool-specific CLI options. Fields depend on the agent type. */
+  options?: CopilotAgentOptions | GeminiAgentOptions;
 }
 
 /** Interface that every agent adapter must implement */
@@ -210,6 +228,8 @@ export type RunOptions = {
 
 export interface BenchConfig {
   name: string;
+  /** Optional description shown at the top of summary.md */
+  description?: string;
   options?: RunOptions;
 
   variantDefaults?: VariantDefaults;

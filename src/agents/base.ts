@@ -10,6 +10,10 @@ import type {
 export function createSubprocessAdapter(
   adapterName: string,
   defaultConfig: AgentConfig,
+  optionsToArgs?: (
+    options: Record<string, unknown>,
+    workspacePath: string,
+  ) => string[],
 ): AgentAdapter {
   return {
     name: adapterName,
@@ -57,7 +61,17 @@ export function createSubprocessAdapter(
           .replace("{requirementsContent}", requirementsContent)
           .replace("{workspacePath}", workspacePath),
       );
-      return spawnAgent(resolvedAgent.cmd!, resolvedArgs, workspacePath);
+      const optionArgs = optionsToArgs
+        ? optionsToArgs(
+            (resolvedAgent.options as Record<string, unknown>) ?? {},
+            workspacePath,
+          )
+        : [];
+      return spawnAgent(
+        resolvedAgent.cmd!,
+        [...resolvedArgs, ...optionArgs],
+        workspacePath,
+      );
     },
   };
 }

@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import Table from "cli-table3";
-import type { RunSetSummary, StatSummary } from "./types";
+import type { RunResult, RunSetSummary, StatSummary } from "./types";
 
 // ── Single run-set report ─────────────────────────────────────────────────────
 
@@ -177,7 +177,10 @@ export function formatScoreboard(summaries: RunSetSummary[]): string {
 
 // ── Scoreboard (Markdown) ─────────────────────────────────────────────────────
 
-export function formatScoreboardMarkdown(summaries: RunSetSummary[]): string {
+export function formatScoreboardMarkdown(
+  summaries: RunSetSummary[],
+  description?: string,
+): string {
   if (summaries.length === 0) {
     return "_No run sets found._\n";
   }
@@ -202,14 +205,107 @@ export function formatScoreboardMarkdown(summaries: RunSetSummary[]): string {
     return `| ${s.agentName} | ${s.variantName} | ${score} | ${llmJudge} | ${checks} | ${time} | ${lines} | ${cost} | ${s.totalRuns} |`;
   });
 
-  const lines: string[] = [
-    "# Scoreboard",
+  const lines: string[] = [];
+
+  if (description) {
+    lines.push(`# ${description}`, "");
+  }
+
+  lines.push(
+    "## Scoreboard",
     "",
     "| Agent | Variant | Overall | LLM Judge | Checks | Time (ms) | Lines | Est. cost | Runs |",
     "|-------|---------|--------:|----------:|-------:|----------:|------:|-----------|-----:|",
     ...rows,
     "",
-  ];
+  );
+
+  return lines.join("\n");
+}
+
+// ── Detailed run info by variant (Markdown) ───────────────────────────────────
+
+export function formatRunDetailsMarkdown(
+  runsByVariant: Map<string, RunResult[]>,
+): string {
+  if (runsByVariant.size === 0) return "";
+
+  const lines: string[] = ["## Details by Variant", ""];
+
+  for (const [variantName, runs] of runsByVariant) {
+    lines.push(`### ${variantName}`, "");
+
+    // Group runs by runSetId
+    const byRunSet = new Map<string, RunResult[]>();
+    for (const run of runs) {
+      const group = byRunSet.get(run.runSetId) ?? [];
+      group.push(run);
+      byRunSet.set(run.runSetId, group);
+    }
+
+    for (const [runSetId, setRuns] of byRunSet) {
+      lines.push(`#### Run Set: \`${runSetId}\``, "");
+
+      const sortedRuns = [...setRuns].sort(
+        (a, b) => a.attemptNumber - b.attemptNumber,
+      );
+
+      for (const run of sortedRuns) {
+        const score =
+          run.scoring.overall != null ? run.scoring.overall.toFixed(3) : "—";
+        const cost =
+          run.metrics.estimatedCostUsd != null
+            ? `$${run.metrics.estimatedCostUsd.toFixed(4)}`
+            : "—";
+        lines.push(
+          `**Run ${run.attemptNumber}** — ${run.completedAt} · ${run.metrics.timeMs}ms · ${run.metrics.lineCount} lines · score: ${score}`,
+          "",
+          "| Metric | Value |",
+          "|--------|------:|",
+          `| Time | ${run.metrics.timeMs}ms |`,
+          `| Lines | ${run.metrics.lineCount} |`,
+          `| Tokens | ${run.metrics.tokenCount} |`,
+          `| Est. cost | ${cost} |`,
+          `| Exit code | ${run.exitCode ?? "—"} |`,
+          "",
+        );
+
+        if (run.scoring.llmJudge) {
+          const judge = run.scoring.llmJudge;
+          lines.push(
+            `**LLM Judge** (score: ${judge.score.toFixed(3)}): ${judge.summary}`,
+            "",
+          );
+          if (judge.criteria.length > 0) {
+            lines.push(
+              "| Criterion | Score | Reasoning |",
+              "|-----------|------:|-----------|",
+            );
+            for (const c of judge.criteria) {
+              const reasoning = c.reasoning.replace(/\|/g, "\\|");
+              lines.push(
+                `| ${c.criterion} | ${c.score.toFixed(2)} | ${reasoning} |`,
+              );
+            }
+            lines.push("");
+          }
+        }
+
+        if (run.scoring.checks && run.scoring.checks.length > 0) {
+          lines.push(
+            "**Checks:**",
+            "",
+            "| Check | Score | Passed |",
+            "|-------|------:|:------:|",
+          );
+          for (const c of run.scoring.checks) {
+            lines.push(`| ${c.name} | ${c.score} | ${c.success ? "✓" : "✗"} |`);
+          }
+          lines.push("");
+        }
+      }
+    }
+  }
 
   return lines.join("\n");
 }
