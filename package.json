@@ -2,8 +2,24 @@
     "name": "loopscore",
     "version": "0.1.0",
     "description": "Benchmark agentic coding AIs against coding tasks",
+    "license": "MIT",
     "type": "module",
     "packageManager": "pnpm@10.33.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/sebastianmattar/loopscore.git"
+    },
+    "homepage": "https://github.com/sebastianmattar/loopscore#readme",
+    "bugs": {
+        "url": "https://github.com/sebastianmattar/loopscore/issues"
+    },
+    "keywords": [
+        "benchmark",
+        "cli",
+        "ai",
+        "agents",
+        "evaluation"
+    ],
     "engines": {
         "node": ">=18"
     },
@@ -17,13 +33,20 @@
         ".github/skills",
         "README.md"
     ],
+    "publishConfig": {
+        "access": "public",
+        "provenance": true
+    },
     "scripts": {
         "build": "rm -rf dist && tsc -p tsconfig.build.json && tsx scripts/generate-schema.ts",
+        "changeset": "changeset",
         "dev": "tsx src/index.ts",
         "prepack": "pnpm run build",
+        "release": "changeset publish",
         "start": "node dist/index.js",
         "lint": "eslint src",
-        "run:example": "pnpm run dev run benchmarks/caveman-skill.config.yaml"
+        "run:example": "pnpm run dev run benchmarks/caveman-skill.config.yaml",
+        "version-packages": "changeset version"
     },
     "dependencies": {
         "chalk": "^4.1.2",
@@ -36,6 +59,8 @@
         "zod": "^4.4.1"
     },
     "devDependencies": {
+        "@changesets/changelog-github": "^0.5.2",
+        "@changesets/cli": "^2.31.0",
         "@eslint/js": "^10.0.1",
         "@types/node": "^22.19.17",
         "eslint": "^10.2.1",
