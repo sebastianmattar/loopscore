@@ -16,6 +16,17 @@ In the rapidly evolving AI landscape, "vibes-based" testing eventually hits a wa
 
 ---
 
+## Example
+
+**Question:** Does the caveman skill save tokens without compromising quality?
+Let's find out with an artificial benchmark!
+
+```
+
+```
+
+---
+
 ## ⚙️ How It Works
 
 The tool executes a standardized set of commands across multiple **agentic environments**. Once the agents complete their tasks, `loopscore` aggregates the data and runs an evaluation suite:
@@ -47,13 +58,14 @@ The generated results will be analyzed according to the following metrics.
 
 ## ⚠️ Important Caveats
 
-Benchmark results in the LLM world should be viewed as a **compass, not a GPS**. Keep the following in mind:
+Benchmark results in the LLM world should be used with caution. Keep the following in mind:
 
 - **Benchmarking Complexity:** Creating realistic benchmarks is very hard. Models get worse with larger contexts, simple benchmarks without user interaction are very limited.
 - **Environmental Noise:** Results vary due to hardware, seed randomness, and provider-side load balancing.
 - **Provider Variability:** API providers often adjust "thinking budgets" or update system prompts without notice, and caching can mask variance.
 - **"Benchmaxxing":** Some models are fine-tuned specifically to score high on public benchmarks and common frameworks, but may falter in messy, real-world repositories.
 - **Judge Subjectivity:** The "LLM Judge" is itself an LLM, making it susceptible to the same hallucinations and biases as the agents it evaluates.
+- **Agent Awareness:** Agents may get aware that they are being benchmarked and therefore behave differently
 
 ---
 
@@ -65,8 +77,3 @@ To get started, ensure your environment meets these requirements:
 - **Runtime:** Node.js **22+**
 - **Agent Access:** Target Agent CLIs (e.g., `copilot`, `gemini`, `claude`) must be installed and accessible via your `$PATH`.
 - **Authentication:** Agents must be pre-authenticated. You can manage API keys and secrets using a standard `.env` file if you need to.
-
-## Todos
-
-- Agent Skill that designs benchmarks
--

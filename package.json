@@ -15,7 +15,7 @@
         "dev": "tsx src/index.ts",
         "start": "node dist/index.js",
         "lint": "eslint src",
-        "run:example": "pnpm run dev run examples/caveman-skill.config.yaml"
+        "run:example": "pnpm run dev run benchmarks/caveman-skill.config.yaml"
     },
     "dependencies": {
         "chalk": "^4.1.2",

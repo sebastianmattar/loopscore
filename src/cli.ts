@@ -29,6 +29,31 @@ function makeRunSetId(variantName: string): string {
   return `${variantName}/${ts}`;
 }
 
+function copyMissingScaffold(sourcePath: string, destPath: string): boolean {
+  if (!fs.existsSync(sourcePath)) return false;
+
+  const sourceStat = fs.statSync(sourcePath);
+
+  if (sourceStat.isDirectory()) {
+    fs.mkdirSync(destPath, { recursive: true });
+    let wroteAny = false;
+    for (const entry of fs.readdirSync(sourcePath)) {
+      wroteAny =
+        copyMissingScaffold(
+          path.join(sourcePath, entry),
+          path.join(destPath, entry),
+        ) || wroteAny;
+    }
+    return wroteAny;
+  }
+
+  if (fs.existsSync(destPath)) return false;
+
+  fs.mkdirSync(path.dirname(destPath), { recursive: true });
+  fs.copyFileSync(sourcePath, destPath);
+  return true;
+}
+
 async function runHealthchecks(agentConfigs: AgentConfig[]): Promise<void> {
   console.log(chalk.bold("\nRunning healthchecks…"));
   for (const agentConfig of agentConfigs) {
@@ -352,21 +377,48 @@ export function buildCLI(): Command {
   program
     .command("init")
     .description(
-      "Set up .vscode/ settings and copy bench-config.schema.json into the current directory",
+      "Set up VS Code settings, benchmark schema, skills, and example benchmark files in the current directory",
     )
     .action(() => {
       const cwd = process.cwd();
       const vscodeDir = path.join(cwd, ".vscode");
       fs.mkdirSync(vscodeDir, { recursive: true });
+      const packageRoot = path.resolve(
+        import.meta.dirname ?? path.dirname(new URL(import.meta.url).pathname),
+        "..",
+      );
 
       // ── Copy schema ──────────────────────────────────────────────────────
-      const schemaSource = path.resolve(
-        import.meta.dirname ?? path.dirname(new URL(import.meta.url).pathname),
-        "../bench-config.schema.json",
-      );
+      const schemaSource = path.join(packageRoot, "bench-config.schema.json");
       const schemaDest = path.join(cwd, "bench-config.schema.json");
       fs.copyFileSync(schemaSource, schemaDest);
       console.log(chalk.green(`  ✓ Written: ${schemaDest}`));
+
+      // ── Copy skills scaffolding ─────────────────────────────────────────
+      const skillsSource = path.join(packageRoot, ".github", "skills");
+      const skillsDest = path.join(cwd, ".github", "skills");
+      if (copyMissingScaffold(skillsSource, skillsDest)) {
+        console.log(chalk.green(`  ✓ Scaffolded: ${skillsDest}`));
+      } else {
+        console.log(chalk.gray(`  – Already present: ${skillsDest}`));
+      }
+
+      // ── Copy example benchmark ──────────────────────────────────────────
+      const exampleSource = path.join(
+        packageRoot,
+        "benchmarks",
+        "caveman-skill.config.yaml",
+      );
+      const exampleDest = path.join(
+        cwd,
+        "benchmarks",
+        "caveman-skill.config.yaml",
+      );
+      if (copyMissingScaffold(exampleSource, exampleDest)) {
+        console.log(chalk.green(`  ✓ Scaffolded: ${exampleDest}`));
+      } else {
+        console.log(chalk.gray(`  – Already present: ${exampleDest}`));
+      }
 
       // ── extensions.json ──────────────────────────────────────────────────
       const extFile = path.join(vscodeDir, "extensions.json");
@@ -412,13 +464,18 @@ export function buildCLI(): Command {
         unknown
       >;
       const schemaKey = "./bench-config.schema.json";
-      const schemaGlob = "*.config.yaml";
+      const schemaGlobs = ["*.config.yaml", "benchmarks/*.config.yaml"];
       const existing = yamlSchemas[schemaKey];
-      const alreadySet =
-        existing === schemaGlob ||
-        (Array.isArray(existing) && existing.includes(schemaGlob));
+      const alreadySet = Array.isArray(existing)
+        ? schemaGlobs.every((glob) => existing.includes(glob))
+        : schemaGlobs.includes(existing as string);
       if (!alreadySet) {
-        yamlSchemas[schemaKey] = schemaGlob;
+        const mergedGlobs = Array.isArray(existing)
+          ? Array.from(new Set([...existing, ...schemaGlobs]))
+          : typeof existing === "string"
+            ? Array.from(new Set([existing, ...schemaGlobs]))
+            : schemaGlobs;
+        yamlSchemas[schemaKey] = mergedGlobs;
         settingsJson["yaml.schemas"] = yamlSchemas;
         fs.writeFileSync(
           settingsFile,
@@ -432,7 +489,7 @@ export function buildCLI(): Command {
 
       console.log(
         chalk.bold(
-          "\n  Done. Open the folder in VS Code to get YAML autocomplete for bench config files.",
+          "\n  Done. Open the folder in VS Code to get YAML autocomplete plus starter skills and benchmark files.",
         ),
       );
     });
