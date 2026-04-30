@@ -15,19 +15,162 @@ export interface CommandsConfig {
 }
 
 export interface CopilotAgentOptions {
+  /** Pass --reasoning-effort <level>. Alias: effort. */
+  reasoningEffort?: "low" | "medium" | "high" | "xhigh";
+  /** Alias for reasoningEffort. */
+  effort?: "low" | "medium" | "high" | "xhigh";
+  /** Pass --add-dir <directory> for each entry. */
+  addDir?: string[];
+  /** Pass --add-github-mcp-tool <tool> for each entry. */
+  addGithubMcpTool?: string[];
+  /** Pass --add-github-mcp-toolset <toolset> for each entry. */
+  addGithubMcpToolset?: string[];
+  /** Pass --additional-mcp-config <json-or-@file> for each entry. */
+  additionalMcpConfig?: string[];
+  /** Pass --agent <agent>. */
+  agent?: string;
+  /** Pass --allow-all (default: false). */
+  allowAll?: boolean;
   /** Pass --allow-all-tools (default: true) */
   allowAllTools?: boolean;
   /** Pass --allow-all-paths (default: true) */
   allowAllPaths?: boolean;
+  /** Pass --allow-all-urls (default: false). */
+  allowAllUrls?: boolean;
+  /** Pass --allow-tool=<tool> for each entry. */
+  allowTool?: string[];
+  /** Pass --allow-url=<url-or-domain> for each entry. */
+  allowUrl?: string[];
+  /** Pass --autopilot. */
+  autopilot?: boolean;
+  /** Pass --available-tools=<tool> for each entry. */
+  availableTools?: string[];
+  /** Pass --banner. */
+  banner?: boolean;
+  /** Pass --bash-env[=on|off]. */
+  bashEnv?: "on" | "off" | boolean;
+  /** Pass --deny-tool=<tool> for each entry. */
+  denyTool?: string[];
+  /** Pass --deny-url=<url-or-domain> for each entry. */
+  denyUrl?: string[];
+  /** Pass --disable-builtin-mcps. */
+  disableBuiltinMcps?: boolean;
+  /** Pass --disable-mcp-server <server-name> for each entry. */
+  disableMcpServer?: string[];
+  /** Pass --disallow-temp-dir. */
+  disallowTempDir?: boolean;
+  /** Pass --enable-all-github-mcp-tools. */
+  enableAllGithubMcpTools?: boolean;
+  /** Pass --enable-reasoning-summaries. */
+  enableReasoningSummaries?: boolean;
+  /** Pass --excluded-tools=<tool> for each entry. */
+  excludedTools?: string[];
+  /** Pass --experimental / --no-experimental. */
+  experimental?: boolean;
   /** Pass --output-format (default: "json") */
   outputFormat?: "json" | "text";
+  /** Pass --log-dir <directory>. */
+  logDir?: string;
+  /** Pass --log-level <level>. */
+  logLevel?:
+    | "none"
+    | "error"
+    | "warning"
+    | "info"
+    | "debug"
+    | "all"
+    | "default";
+  /** Pass --max-autopilot-continues <count>. */
+  maxAutopilotContinues?: number;
+  /** Pass --mode <mode>. */
+  mode?: "interactive" | "plan" | "autopilot";
+  /** Pass --mouse[=on|off]. */
+  mouse?: "on" | "off" | boolean;
+  /** Pass --no-ask-user. */
+  noAskUser?: boolean;
+  /** Pass --no-auto-update. */
+  noAutoUpdate?: boolean;
+  /** Pass --no-bash-env. */
+  noBashEnv?: boolean;
+  /** Pass --no-color. */
+  noColor?: boolean;
+  /** Pass --no-custom-instructions. */
+  noCustomInstructions?: boolean;
+  /** Pass --no-mouse. */
+  noMouse?: boolean;
+  /** Pass --no-remote. */
+  noRemote?: boolean;
+  /** Pass --plain-diff. */
+  plainDiff?: boolean;
+  /** Pass --plugin-dir <directory> for each entry. */
+  pluginDir?: string[];
+  /** Pass --remote. */
+  remote?: boolean;
+  /** Pass --resume or --resume=<session-id>. */
+  resume?: boolean | string;
+  /** Pass --connect or --connect=<session-id>. */
+  connect?: boolean | string;
+  /** Pass --continue. */
+  continue?: boolean;
+  /** Pass --plan. */
+  plan?: boolean;
+  /** Pass --silent. */
+  silent?: boolean;
+  /** Pass --screen-reader. */
+  screenReader?: boolean;
+  /** Pass --secret-env-vars=<name> for each entry. */
+  secretEnvVars?: string[];
+  /** Pass --share or --share=<path>. Supports {workspacePath} template. */
+  share?: boolean | string;
+  /** Pass --share-gist. */
+  shareGist?: boolean;
+  /** Pass --stream <mode>. */
+  stream?: "on" | "off";
+  /** Pass --yolo (default: false). */
+  yolo?: boolean;
   /** Pass --config-dir. Supports {workspacePath} template. Defaults to workspace path. */
   configDir?: string;
 }
 
 export interface GeminiAgentOptions {
+  /** Pass --debug. */
+  debug?: boolean;
+  /** Pass --model <model>. */
+  model?: string;
+  /** Pass --worktree or --worktree <name>. */
+  worktree?: boolean | string;
+  /** Pass --sandbox. */
+  sandbox?: boolean;
   /** Pass --yolo to auto-approve all tool actions (default: true) */
   yolo?: boolean;
+  /** Pass --approval-mode <mode>. */
+  approvalMode?: "default" | "auto_edit" | "yolo" | "plan";
+  /** Pass --policy <path> for each entry. Supports {workspacePath} template. */
+  policy?: string[];
+  /** Pass --admin-policy <path> for each entry. Supports {workspacePath} template. */
+  adminPolicy?: string[];
+  /** Pass --acp. */
+  acp?: boolean;
+  /** Pass --experimental-acp. */
+  experimentalAcp?: boolean;
+  /** Pass --allowed-mcp-server-names <name> for each entry. */
+  allowedMcpServerNames?: string[];
+  /** Pass --allowed-tools <tool> for each entry. */
+  allowedTools?: string[];
+  /** Pass --extensions <name> for each entry. */
+  extensions?: string[];
+  /** Pass --resume <session>. */
+  resume?: string;
+  /** Pass --include-directories <path> for each entry. Supports {workspacePath} template. */
+  includeDirectories?: string[];
+  /** Pass --screen-reader. */
+  screenReader?: boolean;
+  /** Pass --output-format <format>. */
+  outputFormat?: "text" | "json" | "stream-json";
+  /** Pass --raw-output. */
+  rawOutput?: boolean;
+  /** Pass --accept-raw-output-risk. */
+  acceptRawOutputRisk?: boolean;
 }
 
 export interface AgentConfig {

@@ -18,15 +18,13 @@
         "run:example": "pnpm run dev run examples/caveman-skill.config.yaml"
     },
     "dependencies": {
-        "@anthropic-ai/sdk": "^0.90.0",
         "chalk": "^4.1.2",
         "cli-table3": "^0.6.5",
         "commander": "^14.0.3",
-        "es-toolkit": "^1.45.1",
-        "openai": "^6.34.0",
-        "ora": "^9.3.0",
+        "es-toolkit": "^1.46.1",
+        "ora": "^9.4.0",
         "yaml": "^2.8.3",
-        "zod": "^4.3.6"
+        "zod": "^4.4.1"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
@@ -35,7 +33,7 @@
         "globals": "^17.5.0",
         "tsx": "^4.21.0",
         "typescript": "^6.0.3",
-        "typescript-eslint": "^8.59.0",
+        "typescript-eslint": "^8.59.1",
         "zod-to-json-schema": "^3.25.2"
     }
 }

@@ -66,10 +66,138 @@
                 {
                   "type": "object",
                   "properties": {
+                    "reasoningEffort": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                        "xhigh"
+                      ]
+                    },
+                    "effort": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                        "xhigh"
+                      ]
+                    },
+                    "addDir": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "addGithubMcpTool": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "addGithubMcpToolset": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalMcpConfig": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "agent": {
+                      "type": "string"
+                    },
+                    "allowAll": {
+                      "type": "boolean"
+                    },
                     "allowAllTools": {
                       "type": "boolean"
                     },
                     "allowAllPaths": {
+                      "type": "boolean"
+                    },
+                    "allowAllUrls": {
+                      "type": "boolean"
+                    },
+                    "allowTool": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "allowUrl": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "autopilot": {
+                      "type": "boolean"
+                    },
+                    "availableTools": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "banner": {
+                      "type": "boolean"
+                    },
+                    "bashEnv": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "on",
+                            "off"
+                          ]
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    },
+                    "denyTool": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "denyUrl": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "disableBuiltinMcps": {
+                      "type": "boolean"
+                    },
+                    "disableMcpServer": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "disallowTempDir": {
+                      "type": "boolean"
+                    },
+                    "enableAllGithubMcpTools": {
+                      "type": "boolean"
+                    },
+                    "enableReasoningSummaries": {
+                      "type": "boolean"
+                    },
+                    "excludedTools": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "experimental": {
                       "type": "boolean"
                     },
                     "outputFormat": {
@@ -78,6 +206,142 @@
                         "json",
                         "text"
                       ]
+                    },
+                    "logDir": {
+                      "type": "string"
+                    },
+                    "logLevel": {
+                      "type": "string",
+                      "enum": [
+                        "none",
+                        "error",
+                        "warning",
+                        "info",
+                        "debug",
+                        "all",
+                        "default"
+                      ]
+                    },
+                    "maxAutopilotContinues": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "interactive",
+                        "plan",
+                        "autopilot"
+                      ]
+                    },
+                    "mouse": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "on",
+                            "off"
+                          ]
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    },
+                    "noAskUser": {
+                      "type": "boolean"
+                    },
+                    "noAutoUpdate": {
+                      "type": "boolean"
+                    },
+                    "noBashEnv": {
+                      "type": "boolean"
+                    },
+                    "noColor": {
+                      "type": "boolean"
+                    },
+                    "noCustomInstructions": {
+                      "type": "boolean"
+                    },
+                    "noMouse": {
+                      "type": "boolean"
+                    },
+                    "noRemote": {
+                      "type": "boolean"
+                    },
+                    "plainDiff": {
+                      "type": "boolean"
+                    },
+                    "pluginDir": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "remote": {
+                      "type": "boolean"
+                    },
+                    "resume": {
+                      "anyOf": [
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "connect": {
+                      "anyOf": [
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "continue": {
+                      "type": "boolean"
+                    },
+                    "plan": {
+                      "type": "boolean"
+                    },
+                    "silent": {
+                      "type": "boolean"
+                    },
+                    "screenReader": {
+                      "type": "boolean"
+                    },
+                    "secretEnvVars": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "share": {
+                      "anyOf": [
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "shareGist": {
+                      "type": "boolean"
+                    },
+                    "stream": {
+                      "type": "string",
+                      "enum": [
+                        "on",
+                        "off"
+                      ]
+                    },
+                    "yolo": {
+                      "type": "boolean"
                     },
                     "configDir": {
                       "type": "string"
@@ -88,7 +352,97 @@
                 {
                   "type": "object",
                   "properties": {
+                    "debug": {
+                      "type": "boolean"
+                    },
+                    "model": {
+                      "type": "string"
+                    },
+                    "worktree": {
+                      "anyOf": [
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "sandbox": {
+                      "type": "boolean"
+                    },
                     "yolo": {
+                      "type": "boolean"
+                    },
+                    "approvalMode": {
+                      "type": "string",
+                      "enum": [
+                        "default",
+                        "auto_edit",
+                        "yolo",
+                        "plan"
+                      ]
+                    },
+                    "policy": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "adminPolicy": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "acp": {
+                      "type": "boolean"
+                    },
+                    "experimentalAcp": {
+                      "type": "boolean"
+                    },
+                    "allowedMcpServerNames": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "allowedTools": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "extensions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "resume": {
+                      "type": "string"
+                    },
+                    "includeDirectories": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "screenReader": {
+                      "type": "boolean"
+                    },
+                    "outputFormat": {
+                      "type": "string",
+                      "enum": [
+                        "text",
+                        "json",
+                        "stream-json"
+                      ]
+                    },
+                    "rawOutput": {
+                      "type": "boolean"
+                    },
+                    "acceptRawOutputRisk": {
                       "type": "boolean"
                     }
                   },
@@ -200,10 +554,138 @@
                   {
                     "type": "object",
                     "properties": {
+                      "reasoningEffort": {
+                        "type": "string",
+                        "enum": [
+                          "low",
+                          "medium",
+                          "high",
+                          "xhigh"
+                        ]
+                      },
+                      "effort": {
+                        "type": "string",
+                        "enum": [
+                          "low",
+                          "medium",
+                          "high",
+                          "xhigh"
+                        ]
+                      },
+                      "addDir": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "addGithubMcpTool": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "addGithubMcpToolset": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalMcpConfig": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "agent": {
+                        "type": "string"
+                      },
+                      "allowAll": {
+                        "type": "boolean"
+                      },
                       "allowAllTools": {
                         "type": "boolean"
                       },
                       "allowAllPaths": {
+                        "type": "boolean"
+                      },
+                      "allowAllUrls": {
+                        "type": "boolean"
+                      },
+                      "allowTool": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "allowUrl": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "autopilot": {
+                        "type": "boolean"
+                      },
+                      "availableTools": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "banner": {
+                        "type": "boolean"
+                      },
+                      "bashEnv": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "on",
+                              "off"
+                            ]
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      },
+                      "denyTool": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "denyUrl": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "disableBuiltinMcps": {
+                        "type": "boolean"
+                      },
+                      "disableMcpServer": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "disallowTempDir": {
+                        "type": "boolean"
+                      },
+                      "enableAllGithubMcpTools": {
+                        "type": "boolean"
+                      },
+                      "enableReasoningSummaries": {
+                        "type": "boolean"
+                      },
+                      "excludedTools": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "experimental": {
                         "type": "boolean"
                       },
                       "outputFormat": {
@@ -212,6 +694,142 @@
                           "json",
                           "text"
                         ]
+                      },
+                      "logDir": {
+                        "type": "string"
+                      },
+                      "logLevel": {
+                        "type": "string",
+                        "enum": [
+                          "none",
+                          "error",
+                          "warning",
+                          "info",
+                          "debug",
+                          "all",
+                          "default"
+                        ]
+                      },
+                      "maxAutopilotContinues": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "interactive",
+                          "plan",
+                          "autopilot"
+                        ]
+                      },
+                      "mouse": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "on",
+                              "off"
+                            ]
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      },
+                      "noAskUser": {
+                        "type": "boolean"
+                      },
+                      "noAutoUpdate": {
+                        "type": "boolean"
+                      },
+                      "noBashEnv": {
+                        "type": "boolean"
+                      },
+                      "noColor": {
+                        "type": "boolean"
+                      },
+                      "noCustomInstructions": {
+                        "type": "boolean"
+                      },
+                      "noMouse": {
+                        "type": "boolean"
+                      },
+                      "noRemote": {
+                        "type": "boolean"
+                      },
+                      "plainDiff": {
+                        "type": "boolean"
+                      },
+                      "pluginDir": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "remote": {
+                        "type": "boolean"
+                      },
+                      "resume": {
+                        "anyOf": [
+                          {
+                            "type": "boolean"
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "connect": {
+                        "anyOf": [
+                          {
+                            "type": "boolean"
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "continue": {
+                        "type": "boolean"
+                      },
+                      "plan": {
+                        "type": "boolean"
+                      },
+                      "silent": {
+                        "type": "boolean"
+                      },
+                      "screenReader": {
+                        "type": "boolean"
+                      },
+                      "secretEnvVars": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "share": {
+                        "anyOf": [
+                          {
+                            "type": "boolean"
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "shareGist": {
+                        "type": "boolean"
+                      },
+                      "stream": {
+                        "type": "string",
+                        "enum": [
+                          "on",
+                          "off"
+                        ]
+                      },
+                      "yolo": {
+                        "type": "boolean"
                       },
                       "configDir": {
                         "type": "string"
@@ -222,7 +840,97 @@
                   {
                     "type": "object",
                     "properties": {
+                      "debug": {
+                        "type": "boolean"
+                      },
+                      "model": {
+                        "type": "string"
+                      },
+                      "worktree": {
+                        "anyOf": [
+                          {
+                            "type": "boolean"
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "sandbox": {
+                        "type": "boolean"
+                      },
                       "yolo": {
+                        "type": "boolean"
+                      },
+                      "approvalMode": {
+                        "type": "string",
+                        "enum": [
+                          "default",
+                          "auto_edit",
+                          "yolo",
+                          "plan"
+                        ]
+                      },
+                      "policy": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "adminPolicy": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "acp": {
+                        "type": "boolean"
+                      },
+                      "experimentalAcp": {
+                        "type": "boolean"
+                      },
+                      "allowedMcpServerNames": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "allowedTools": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "extensions": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "resume": {
+                        "type": "string"
+                      },
+                      "includeDirectories": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "screenReader": {
+                        "type": "boolean"
+                      },
+                      "outputFormat": {
+                        "type": "string",
+                        "enum": [
+                          "text",
+                          "json",
+                          "stream-json"
+                        ]
+                      },
+                      "rawOutput": {
+                        "type": "boolean"
+                      },
+                      "acceptRawOutputRisk": {
                         "type": "boolean"
                       }
                     },
