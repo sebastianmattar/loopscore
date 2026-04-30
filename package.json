@@ -1,5 +1,5 @@
 {
-    "name": "loopscore",
+    "name": "@sebastianmattar/loopscore",
     "version": "0.1.0",
     "description": "Benchmark agentic coding AIs against coding tasks",
     "license": "MIT",
@@ -24,7 +24,7 @@
         "node": ">=18"
     },
     "bin": {
-        "loopscore": "./dist/index.js"
+        "loopscore": "dist/index.js"
     },
     "files": [
         "dist",
