@@ -19,7 +19,7 @@ variantDefaults:
 
         Use TypeScript with strict mode enabled. No external HTTP framework dependencies (use Node.js `http` module).
         Items should have at minimum: id (uuid or incremental), name (string), createdAt (ISO string).
-        Use the current stable versions for depencies. Use pnpm as package manager.
+        Use the current stable versions for dependencies. Use pnpm as package manager.
 
 variants:
   - name: without-caveman

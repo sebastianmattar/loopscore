@@ -120,7 +120,7 @@ const VariantDefaultsSchema = VariantConfigSchema.omit({ name: true });
 const MeasurementsSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("judge"),
-    provider: z.enum(["copilot"]).default("copilot"),
+    provider: z.enum(["copilot", "gemini"]).default("copilot"),
     model: z.string().optional(),
     acceptanceCriteria: z.array(z.string()).optional(),
   }),

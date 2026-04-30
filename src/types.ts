@@ -1,4 +1,4 @@
-export type JudgeProvider = "copilot";
+export type JudgeProvider = "copilot" | "gemini";
 
 // ── Agent ─────────────────────────────────────────────────────────────────────
 

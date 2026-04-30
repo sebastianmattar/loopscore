@@ -126,6 +126,50 @@ async function judgeWithCopilotCLI(
   };
 }
 
+/**
+ * Invokes the `gemini` CLI in non-interactive mode to get a judge response.
+ * Uses pre-existing auth/config from the local Gemini CLI environment.
+ *
+ * Spawns: gemini -p "<prompt>" --output-format text [--model <model>]
+ */
+async function judgeWithGeminiCLI(
+  userPrompt: string,
+  model?: string,
+): Promise<LLMJudgeResult> {
+  const fullPrompt = `${SYSTEM_PROMPT}\n\n${userPrompt}`;
+
+  const args = ["-p", fullPrompt, "--output-format", "text"];
+  if (model) args.push("--model", model);
+
+  let stdout: string;
+  try {
+    stdout = execFileSync("gemini", args, {
+      encoding: "utf-8",
+      maxBuffer: 10 * 1024 * 1024, // 10 MB — workspace snapshots can be large
+    });
+  } catch (err: unknown) {
+    const spawnErr = err as {
+      stdout?: string;
+      stderr?: string;
+      message?: string;
+    };
+    const detail = spawnErr.stderr ?? spawnErr.message ?? String(err);
+    throw new Error(`gemini CLI judge failed: ${detail}`, { cause: err });
+  }
+
+  const parsed = parseJudgeResponse(stdout);
+  const resolvedModel = model ?? "gemini-default";
+
+  return {
+    score: parsed.overall,
+    criteria: parsed.criteria,
+    reasoning: parsed.reasoning,
+    summary: parsed.summary ?? "",
+    provider: "gemini",
+    model: resolvedModel,
+  };
+}
+
 export async function runLLMJudge(
   acceptanceCriteria: string[],
   workspaceSnapshot: string,
@@ -139,6 +183,10 @@ export async function runLLMJudge(
       // Uses the `copilot` CLI in non-interactive mode — no API key needed,
       // authentication is handled by the pre-existing copilot CLI session.
       return judgeWithCopilotCLI(userPrompt, model);
+    }
+    case "gemini": {
+      // Uses the `gemini` CLI in non-interactive mode.
+      return judgeWithGeminiCLI(userPrompt, model);
     }
   }
 }
