@@ -40,7 +40,6 @@
         "build": "rm -rf dist && tsc -p tsconfig.build.json && tsx scripts/generate-schema.ts",
         "changeset": "changeset",
         "dev": "tsx src/index.ts",
-        "prepack": "pnpm run build",
         "release": "changeset publish",
         "start": "node dist/index.js",
         "lint": "eslint src",
