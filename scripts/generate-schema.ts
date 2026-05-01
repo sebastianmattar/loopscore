@@ -10,4 +10,3 @@ const outPath = path.resolve(
   "../bench-config.schema.json",
 );
 fs.writeFileSync(outPath, JSON.stringify(schema, null, 2) + "\n");
-console.log(`Written: ${outPath}`);
