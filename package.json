@@ -1,13 +1,12 @@
 {
-    "name": "loopscore",
-    "version": "0.1.1",
+    "name": "@sebastianmattar/loopscore",
+    "version": "0.1.2",
     "description": "Benchmark agentic coding AIs against coding tasks",
     "license": "MIT",
     "type": "module",
     "packageManager": "pnpm@10.33.0",
     "repository": {
-        "type": "git",
-        "url": "git+https://github.com/sebastianmattar/loopscore.git"
+        "url": "https://github.com/sebastianmattar/loopscore"
     },
     "homepage": "https://github.com/sebastianmattar/loopscore#readme",
     "bugs": {
