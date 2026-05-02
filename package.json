@@ -1,6 +1,6 @@
 {
     "name": "@sebastianmattar/loopscore",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "description": "Benchmark agentic coding AIs against coding tasks",
     "license": "MIT",
     "type": "module",

@@ -1,5 +1,13 @@
 # loopscore
 
+## 0.1.3
+
+### Patch Changes
+
+- Fix version display
+
+- [#5](https://github.com/sebastianmattar/loopscore/pull/5) [`b95d4b6`](https://github.com/sebastianmattar/loopscore/commit/b95d4b65999aa916135a5921cfab96084977352c) Thanks [@sebastianmattar](https://github.com/sebastianmattar)! - Workflow test
+
 ## 0.1.1
 
 ### Patch Changes
