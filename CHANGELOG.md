@@ -1,5 +1,11 @@
 # loopscore
 
+## 0.1.6
+
+### Patch Changes
+
+- Bump version
+
 ## 0.1.3
 
 ### Patch Changes

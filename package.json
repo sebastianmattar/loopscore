@@ -1,6 +1,6 @@
 {
     "name": "@sebastianmattar/loopscore",
-    "version": "0.1.3",
+    "version": "0.1.6",
     "description": "Benchmark agentic coding AIs against coding tasks",
     "license": "MIT",
     "type": "module",
@@ -38,12 +38,12 @@
     },
     "scripts": {
         "build": "rm -rf dist && genversion -e src/version.ts && tsc -p tsconfig.build.json && tsx scripts/generate-schema.ts",
-        "changeset:changeset": "changeset",
         "dev": "tsx src/index.ts",
         "release": "changeset publish",
         "start": "node dist/index.js",
         "lint": "eslint src",
         "run:example": "pnpm run dev run benchmarks/caveman-skill.config.yaml",
+        "changeset:changeset": "changeset",
         "changeset:version": "changeset version"
     },
     "dependencies": {
