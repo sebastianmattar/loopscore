@@ -1,77 +1,25 @@
-import { execFileSync } from "child_process";
-import { spawnAgent } from "../runner/subprocess.js";
-import type {
-  AgentAdapter,
-  AgentConfig,
-  AgentInvokeResult,
-  VariantConfig,
-} from "../types.js";
+import type { CLIProvider } from "../providers/base.js";
+import {
+  getProviderVersion,
+  invokeProviderAgent,
+  runProviderHealthcheck,
+} from "../providers/base.js";
+import type { AgentAdapter, AgentConfig, VariantConfig } from "../types.js";
 
-export function createSubprocessAdapter(
-  adapterName: string,
-  defaultConfig: AgentConfig,
-  optionsToArgs?: (
-    options: Record<string, unknown>,
-    workspacePath: string,
-  ) => string[],
-): AgentAdapter {
+export function createProviderAdapter(provider: CLIProvider): AgentAdapter {
   return {
-    name: adapterName,
+    name: provider.name,
 
     getVersion(agentConfig: AgentConfig): string {
-      const resolvedConfig = { ...defaultConfig, ...agentConfig };
-      try {
-        return (
-          execFileSync(resolvedConfig.cmd!, ["--version"], {
-            timeout: 5000,
-            encoding: "utf-8",
-          })
-            .trim()
-            .split("\n")[0] ?? "unknown"
-        );
-      } catch {
-        return "unknown";
-      }
+      return getProviderVersion(provider, agentConfig);
     },
 
     async healthcheck(agentConfig: AgentConfig): Promise<void> {
-      const resolvedConfig = { ...defaultConfig, ...agentConfig };
-      try {
-        execFileSync(resolvedConfig.cmd!, ["--version"], {
-          stdio: "ignore",
-          timeout: 8000,
-        });
-      } catch {
-        throw new Error(
-          `Agent "${resolvedConfig.type}" healthcheck failed: command "${resolvedConfig.cmd}" not found or returned an error. ` +
-            `Make sure it is installed and available in PATH.`,
-        );
-      }
+      await runProviderHealthcheck(provider, agentConfig);
     },
 
-    async invoke(
-      workspacePath: string,
-      variant: VariantConfig,
-    ): Promise<AgentInvokeResult> {
-      const resolvedAgent = { ...defaultConfig, ...variant.agent };
-      const requirementsContent = variant.query?.join("\n") ?? "";
-      const rawArgs = resolvedAgent.args ?? [];
-      const resolvedArgs = rawArgs.map((arg) =>
-        arg
-          .replace("{requirementsContent}", requirementsContent)
-          .replace("{workspacePath}", workspacePath),
-      );
-      const optionArgs = optionsToArgs
-        ? optionsToArgs(
-            (resolvedAgent.options as Record<string, unknown>) ?? {},
-            workspacePath,
-          )
-        : [];
-      return spawnAgent(
-        resolvedAgent.cmd!,
-        [...resolvedArgs, ...optionArgs],
-        workspacePath,
-      );
+    async invoke(workspacePath: string, variant: VariantConfig) {
+      return invokeProviderAgent(provider, workspacePath, variant);
     },
   };
 }

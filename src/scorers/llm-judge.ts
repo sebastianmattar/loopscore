@@ -1,4 +1,5 @@
-import { execFileSync } from "child_process";
+import { runProviderJudge } from "../providers/base.js";
+import { getProvider } from "../providers/index.js";
 import type {
   CriterionScore,
   JudgeProvider,
@@ -57,123 +58,6 @@ function parseJudgeResponse(text: string): JudgeResponse {
   return parsed;
 }
 
-/**
- * Invokes the `copilot` CLI in non-interactive mode to get a judge response.
- * Uses pre-existing auth — no API key or token needed.
- *
- * Spawns: copilot -p "<prompt>" --output-format json [--model <model>]
- * Parses the JSONL output to extract the final assistant message content.
- */
-async function judgeWithCopilotCLI(
-  userPrompt: string,
-  model?: string,
-): Promise<LLMJudgeResult> {
-  const fullPrompt = `${SYSTEM_PROMPT}\n\n${userPrompt}`;
-
-  const args = ["-p", fullPrompt, "--output-format", "json"];
-  if (model) args.push("--model", model);
-
-  let stdout: string;
-  try {
-    stdout = execFileSync("copilot", args, {
-      encoding: "utf-8",
-      maxBuffer: 10 * 1024 * 1024, // 10 MB — workspace snapshots can be large
-    });
-  } catch (err: unknown) {
-    const spawnErr = err as {
-      stdout?: string;
-      stderr?: string;
-      message?: string;
-    };
-    const detail = spawnErr.stderr ?? spawnErr.message ?? String(err);
-    throw new Error(`copilot CLI judge failed: ${detail}`, { cause: err });
-  }
-
-  // Parse JSONL: find the assistant.message with phase === "final_answer"
-  const lines = stdout.split("\n").filter(Boolean);
-  let content = "";
-  for (const line of lines) {
-    try {
-      const event = JSON.parse(line) as {
-        type: string;
-        data?: { content?: string; phase?: string };
-      };
-      if (
-        event.type === "assistant.message" &&
-        event.data?.phase === "final_answer" &&
-        event.data.content
-      ) {
-        content = event.data.content;
-        break;
-      }
-    } catch {
-      // skip malformed lines
-    }
-  }
-
-  if (!content) {
-    throw new Error(
-      "copilot CLI judge: could not extract assistant response from output",
-    );
-  }
-
-  const parsed = parseJudgeResponse(content);
-  const resolvedModel = model ?? "copilot-default";
-
-  return {
-    score: parsed.overall,
-    criteria: parsed.criteria,
-    reasoning: parsed.reasoning,
-    summary: parsed.summary ?? "",
-    provider: "copilot",
-    model: resolvedModel,
-  };
-}
-
-/**
- * Invokes the `gemini` CLI in non-interactive mode to get a judge response.
- * Uses pre-existing auth/config from the local Gemini CLI environment.
- *
- * Spawns: gemini -p "<prompt>" --output-format text [--model <model>]
- */
-async function judgeWithGeminiCLI(
-  userPrompt: string,
-  model?: string,
-): Promise<LLMJudgeResult> {
-  const fullPrompt = `${SYSTEM_PROMPT}\n\n${userPrompt}`;
-
-  const args = ["-p", fullPrompt, "--output-format", "text"];
-  if (model) args.push("--model", model);
-
-  let stdout: string;
-  try {
-    stdout = execFileSync("gemini", args, {
-      encoding: "utf-8",
-      maxBuffer: 10 * 1024 * 1024, // 10 MB — workspace snapshots can be large
-    });
-  } catch (err: unknown) {
-    const spawnErr = err as {
-      stdout?: string;
-      stderr?: string;
-      message?: string;
-    };
-    const detail = spawnErr.stderr ?? spawnErr.message ?? String(err);
-    throw new Error(`gemini CLI judge failed: ${detail}`, { cause: err });
-  }
-
-  const parsed = parseJudgeResponse(stdout);
-  const resolvedModel = model ?? "gemini-default";
-
-  return {
-    score: parsed.overall,
-    criteria: parsed.criteria,
-    reasoning: parsed.reasoning,
-    summary: parsed.summary ?? "",
-    provider: "gemini",
-    model: resolvedModel,
-  };
-}
-
 export async function runLLMJudge(
   acceptanceCriteria: string[],
   workspaceSnapshot: string,
@@ -181,16 +65,20 @@ export async function runLLMJudge(
   model?: string,
 ): Promise<LLMJudgeResult> {
   const userPrompt = buildUserPrompt(acceptanceCriteria, workspaceSnapshot);
+  const rawResponse = await runProviderJudge(
+    getProvider(provider),
+    SYSTEM_PROMPT,
+    userPrompt,
+    model,
+  );
+  const parsed = parseJudgeResponse(rawResponse);
 
-  switch (provider) {
-    case "copilot": {
-      // Uses the `copilot` CLI in non-interactive mode — no API key needed,
-      // authentication is handled by the pre-existing copilot CLI session.
-      return judgeWithCopilotCLI(userPrompt, model);
-    }
-    case "gemini": {
-      // Uses the `gemini` CLI in non-interactive mode.
-      return judgeWithGeminiCLI(userPrompt, model);
-    }
-  }
+  return {
+    score: parsed.overall,
+    criteria: parsed.criteria,
+    reasoning: parsed.reasoning,
+    summary: parsed.summary ?? "",
+    provider,
+    model: model ?? `${provider}-default`,
+  };
 }
