@@ -44,7 +44,7 @@
         "lint": "eslint src",
         "run:example": "pnpm run dev run benchmarks/caveman-skill.config.yaml",
         "changeset:changeset": "changeset",
-        "changeset:version": "changeset version"
+        "changeset:version": "changeset version && git tag v$(cat package.json | jq -r .version)"
     },
     "dependencies": {
         "chalk": "^4.1.2",
