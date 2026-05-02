@@ -37,7 +37,7 @@
         "provenance": true
     },
     "scripts": {
-        "build": "rm -rf dist && tsc -p tsconfig.build.json && tsx scripts/generate-schema.ts",
+        "build": "rm -rf dist && genversion -e src/version.ts && tsc -p tsconfig.build.json && tsx scripts/generate-schema.ts",
         "changeset": "changeset",
         "dev": "tsx src/index.ts",
         "release": "changeset publish",
@@ -53,16 +53,17 @@
         "es-toolkit": "^1.46.1",
         "ora": "^9.4.0",
         "typescript": "^6.0.3",
-        "yaml": "^2.8.3",
-        "zod": "^4.4.1"
+        "yaml": "^2.8.4",
+        "zod": "^4.4.2"
     },
     "devDependencies": {
         "@changesets/changelog-github": "^0.5.2",
         "@changesets/cli": "^2.31.0",
         "@eslint/js": "^10.0.1",
         "@types/node": "^22.19.17",
-        "eslint": "^10.2.1",
-        "globals": "^17.5.0",
+        "eslint": "^10.3.0",
+        "genversion": "^3.2.0",
+        "globals": "^17.6.0",
         "tsx": "^4.21.0",
         "typescript-eslint": "^8.59.1",
         "zod-to-json-schema": "^3.25.2"

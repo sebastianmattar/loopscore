@@ -21,7 +21,7 @@ import {
 } from "./report.js";
 import { runTask } from "./runner/index.js";
 import type { AgentConfig, VariantConfig } from "./types.js";
-
+import { version } from "./version.js";
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function makeRunSetId(variantName: string): string {
@@ -234,7 +234,7 @@ export function buildCLI(): Command {
   const program = new Command()
     .name("loopscore")
     .description("Benchmark agentic coding AIs against coding tasks")
-    .version("0.1.0");
+    .version(version);
   // ── bench run-all ──────────────────────────────────────────────────────────
   program
     .command("run")
