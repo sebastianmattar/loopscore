@@ -103,6 +103,7 @@ jobs:
     permissions:
       actions: read # To download the tarball to publish
       id-token: write ## Needed for npm Trusted Publishing (OIDC)
+      contents: write ## Required for GitHub Release
     steps:
       - name: Download packed tarball
         uses: actions/download-artifact@v8
@@ -119,3 +120,5 @@ jobs:
         run: |
           echo "Publishing ${{ needs.prepare.outputs.filename }}"
           npm publish "${{ needs.prepare.outputs.filename }}" --tag ${{ env.NPM_TAG }}
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
