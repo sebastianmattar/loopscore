@@ -130,19 +130,19 @@ You can add an `opencode` variant by overriding the agent on a single benchmark 
 
 ```yaml
 variants:
-	- name: copilot-baseline
-		query:
-			- Implement requirements.md
+  - name: copilot-baseline
+    query:
+      - Implement requirements.md
 
-	- name: opencode-baseline
-		agent:
-			type: opencode
-			model: github-copilot/gpt-5.4
-			options:
-				agent: build
-				variant: high
-		query:
-			- Implement requirements.md
+  - name: opencode-baseline
+    agent:
+      type: opencode
+      model: github-copilot/gpt-5.4
+      options:
+        agent: build
+        variant: high
+    query:
+      - Implement requirements.md
 ```
 
 OpenCode runs through `opencode run ... --format json` and supports headless benchmark execution.
@@ -180,19 +180,19 @@ Example:
 
 ```yaml
 variantDefaults:
-	agent:
-		type: copilot
-		model: gpt-5
-		pricing:
-			inputCostPerMillionTokens: 1.25
-			outputCostPerMillionTokens: 10.0
+  agent:
+    type: copilot
+    model: gpt-5
+    pricing:
+      inputCostPerMillionTokens: 1.25
+      outputCostPerMillionTokens: 10.0
 
 measure:
-	- type: judge
-		provider: copilot
-		model: gpt-5
-		acceptanceCriteria:
-			- Builds and runs
+  - type: judge
+    provider: copilot
+    model: gpt-5
+    acceptanceCriteria:
+      - Builds and runs
 ```
 
 If `pricing` is present on the benchmarked agent and token usage is available, loopscore computes run cost from real input and output tokens. If not, it falls back to the legacy `costPerMillionTokens` setting and the existing token estimate heuristic.
