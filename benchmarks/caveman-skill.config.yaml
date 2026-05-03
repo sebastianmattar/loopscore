@@ -6,7 +6,7 @@ options:
 variantDefaults:
   agent:
     type: copilot
-    model: gpt-5
+    model: gpt-5.4
     pricing:
       inputCostPerMillionTokens: 1.25
       outputCostPerMillionTokens: 10.0
@@ -41,7 +41,7 @@ variants:
 measure:
   - type: judge
     provider: copilot
-    model: gpt-5
+    model: gpt-5.4
     acceptanceCriteria:
       - 'GET /health returns 200 with {"status":"ok"}'
       - GET /items returns an array (initially empty)

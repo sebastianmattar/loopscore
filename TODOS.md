@@ -1,3 +1,2 @@
 - Add more benchmarks
 - Summary should also summarize the llm judge
-- add GitHub release to pipeline
