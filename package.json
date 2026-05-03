@@ -1,6 +1,10 @@
 {
     "name": "@sebastianmattar/loopscore",
-    "version": "0.1.6",
+    "author": {
+        "name": "Sebastian Mattar",
+        "email": "sebastian@mattar.xyz"
+    },
+    "version": "0.2.0",
     "description": "Benchmark agentic coding AIs against coding tasks",
     "license": "MIT",
     "type": "module",
@@ -44,7 +48,7 @@
         "lint": "eslint src",
         "run:example": "pnpm run dev run benchmarks/caveman-skill.config.yaml",
         "changeset:changeset": "changeset",
-        "changeset:version": "changeset version",
+        "changeset:version": "git push && changeset version",
         "changeset:release": "git tag v$(cat package.json | jq -r .version) && git push --follow-tags"
     },
     "dependencies": {

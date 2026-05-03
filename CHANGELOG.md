@@ -1,5 +1,21 @@
 # loopscore
 
+## 0.2.0
+
+### Minor Changes
+
+- [`7230b88`](https://github.com/sebastianmattar/loopscore/commit/7230b88364d77b867a02f7b7095f89e30dde6e11) Thanks [@sebastianmattar](https://github.com/sebastianmattar)! - Better summary.md metrics
+
+- [`7230b88`](https://github.com/sebastianmattar/loopscore/commit/7230b88364d77b867a02f7b7095f89e30dde6e11) Thanks [@sebastianmattar](https://github.com/sebastianmattar)! - Add OpenCode as agent provder
+
+- [`7230b88`](https://github.com/sebastianmattar/loopscore/commit/7230b88364d77b867a02f7b7095f89e30dde6e11) Thanks [@sebastianmattar](https://github.com/sebastianmattar)! - Improve cost tracking
+
+### Patch Changes
+
+- [`7230b88`](https://github.com/sebastianmattar/loopscore/commit/7230b88364d77b867a02f7b7095f89e30dde6e11) Thanks [@sebastianmattar](https://github.com/sebastianmattar)! - Fix `run --force` parameter
+
+- [`ecdaf23`](https://github.com/sebastianmattar/loopscore/commit/ecdaf2316d21cbbb14aa8202446abc714313a812) Thanks [@sebastianmattar](https://github.com/sebastianmattar)! - Refactor agent calling code
+
 ## 0.1.6
 
 ### Patch Changes
