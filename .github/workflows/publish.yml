@@ -26,12 +26,12 @@ jobs:
       packageName: ${{ steps.packageName.outputs.packageName }}
       filename: ${{ steps.pack.outputs.filename }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+        uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: "22"
+          node-version: "lts/*"
           cache: "pnpm"
       - name: Store package name
         id: packageName
@@ -58,7 +58,7 @@ jobs:
           echo "FILENAME=$FILENAME"
           echo "filename=$FILENAME" >> $GITHUB_OUTPUT
       - name: Upload packed tarball
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.pack.outputs.filename }}
           path: ${{ steps.pack.outputs.filename }}
@@ -73,7 +73,7 @@ jobs:
       actions: read # To download the tarball to review
     steps:
       - name: Download packed tarball
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ needs.prepare.outputs.filename }}
           path: .
@@ -105,12 +105,12 @@ jobs:
       id-token: write ## Needed for npm Trusted Publishing (OIDC)
     steps:
       - name: Download packed tarball
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ needs.prepare.outputs.filename }}
           path: .
       - name: Setup node to be able to update npm
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: lts/*
       - name: Update npm to make sure it supports Trusted Publishing
