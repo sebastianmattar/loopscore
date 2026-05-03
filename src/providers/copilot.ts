@@ -1,4 +1,36 @@
+import type { TokenUsage } from "../types.js";
 import type { CLIProvider } from "./base.js";
+
+function parseJsonlTokenUsage(stdout: string): TokenUsage | null {
+  let inputTokens: number | null = null;
+  let outputTokens: number | null = null;
+
+  for (const line of stdout.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("{")) continue;
+
+    try {
+      const event = JSON.parse(trimmed) as Record<string, unknown>;
+      const usage = event.usage as Record<string, unknown> | undefined;
+      if (!usage) continue;
+
+      if (typeof usage.input_tokens === "number") {
+        inputTokens = usage.input_tokens;
+      }
+      if (typeof usage.output_tokens === "number") {
+        outputTokens = usage.output_tokens;
+      }
+    } catch {
+      // skip malformed lines
+    }
+  }
+
+  if (inputTokens !== null || outputTokens !== null) {
+    return { inputTokens, outputTokens };
+  }
+
+  return null;
+}
 
 function pushRepeatableFlag(
   args: string[],
@@ -28,8 +60,11 @@ const copilotProvider: CLIProvider = {
   name: "copilot",
   command: "copilot",
   defaultAgentArgs: ["-p", "{requirementsContent}"],
-  buildAgentOptionArgs(options, workspacePath) {
+  buildAgentOptionArgs(options, workspacePath, agentConfig) {
     const args: string[] = [];
+
+    if (typeof agentConfig.model === "string")
+      args.push("--model", agentConfig.model);
 
     const reasoningEffort =
       typeof options.reasoningEffort === "string"
@@ -178,6 +213,9 @@ const copilotProvider: CLIProvider = {
     throw new Error(
       "copilot CLI judge: could not extract assistant response from output",
     );
+  },
+  extractTokenUsage(stdout) {
+    return parseJsonlTokenUsage(stdout);
   },
 };
 

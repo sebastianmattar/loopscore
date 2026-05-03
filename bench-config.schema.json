@@ -61,6 +61,22 @@
             "costPerMillionTokens": {
               "type": "number"
             },
+            "pricing": {
+              "type": "object",
+              "properties": {
+                "inputCostPerMillionTokens": {
+                  "type": "number"
+                },
+                "outputCostPerMillionTokens": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "inputCostPerMillionTokens",
+                "outputCostPerMillionTokens"
+              ],
+              "additionalProperties": false
+            },
             "options": {
               "anyOf": [
                 {
@@ -447,6 +463,77 @@
                     }
                   },
                   "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "agent": {
+                      "type": "string"
+                    },
+                    "continue": {
+                      "type": "boolean"
+                    },
+                    "session": {
+                      "type": "string"
+                    },
+                    "fork": {
+                      "type": "boolean"
+                    },
+                    "share": {
+                      "type": "boolean"
+                    },
+                    "file": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "attach": {
+                      "type": "string"
+                    },
+                    "password": {
+                      "type": "string"
+                    },
+                    "dir": {
+                      "type": "string"
+                    },
+                    "port": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "variant": {
+                      "type": "string"
+                    },
+                    "thinking": {
+                      "type": "boolean"
+                    },
+                    "dangerouslySkipPermissions": {
+                      "type": "boolean"
+                    },
+                    "command": {
+                      "type": "string"
+                    },
+                    "pure": {
+                      "type": "boolean"
+                    },
+                    "logLevel": {
+                      "type": "string",
+                      "enum": [
+                        "DEBUG",
+                        "INFO",
+                        "WARN",
+                        "ERROR"
+                      ]
+                    },
+                    "printLogs": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               ]
             }
@@ -548,6 +635,22 @@
               },
               "costPerMillionTokens": {
                 "type": "number"
+              },
+              "pricing": {
+                "type": "object",
+                "properties": {
+                  "inputCostPerMillionTokens": {
+                    "type": "number"
+                  },
+                  "outputCostPerMillionTokens": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "inputCostPerMillionTokens",
+                  "outputCostPerMillionTokens"
+                ],
+                "additionalProperties": false
               },
               "options": {
                 "anyOf": [
@@ -935,6 +1038,77 @@
                       }
                     },
                     "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "agent": {
+                        "type": "string"
+                      },
+                      "continue": {
+                        "type": "boolean"
+                      },
+                      "session": {
+                        "type": "string"
+                      },
+                      "fork": {
+                        "type": "boolean"
+                      },
+                      "share": {
+                        "type": "boolean"
+                      },
+                      "file": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "attach": {
+                        "type": "string"
+                      },
+                      "password": {
+                        "type": "string"
+                      },
+                      "dir": {
+                        "type": "string"
+                      },
+                      "port": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "variant": {
+                        "type": "string"
+                      },
+                      "thinking": {
+                        "type": "boolean"
+                      },
+                      "dangerouslySkipPermissions": {
+                        "type": "boolean"
+                      },
+                      "command": {
+                        "type": "string"
+                      },
+                      "pure": {
+                        "type": "boolean"
+                      },
+                      "logLevel": {
+                        "type": "string",
+                        "enum": [
+                          "DEBUG",
+                          "INFO",
+                          "WARN",
+                          "ERROR"
+                        ]
+                      },
+                      "printLogs": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false
                   }
                 ]
               }
@@ -1021,7 +1195,8 @@
                 "type": "string",
                 "enum": [
                   "copilot",
-                  "gemini"
+                  "gemini",
+                  "opencode"
                 ]
               },
               "model": {

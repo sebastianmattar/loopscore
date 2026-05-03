@@ -16,11 +16,13 @@ const geminiProvider: CLIProvider = {
   name: "gemini",
   command: "gemini",
   defaultAgentArgs: ["-p", "{requirementsContent}"],
-  buildAgentOptionArgs(options) {
+  buildAgentOptionArgs(options, _workspacePath, agentConfig) {
     const args: string[] = [];
 
+    if (typeof agentConfig.model === "string")
+      args.push("--model", agentConfig.model);
+
     if (options.debug === true) args.push("--debug");
-    if (typeof options.model === "string") args.push("--model", options.model);
 
     if (options.worktree === true) args.push("--worktree");
     if (typeof options.worktree === "string") {

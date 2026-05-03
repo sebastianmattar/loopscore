@@ -95,6 +95,27 @@ const GeminiAgentOptionsSchema = z.object({
   acceptRawOutputRisk: z.boolean().optional(),
 });
 
+const OpencodeAgentOptionsSchema = z.object({
+  agent: z.string().optional(),
+  continue: z.boolean().optional(),
+  session: z.string().optional(),
+  fork: z.boolean().optional(),
+  share: z.boolean().optional(),
+  file: z.array(z.string()).optional(),
+  title: z.string().optional(),
+  attach: z.string().optional(),
+  password: z.string().optional(),
+  dir: z.string().optional(),
+  port: z.number().int().nonnegative().optional(),
+  variant: z.string().optional(),
+  thinking: z.boolean().optional(),
+  dangerouslySkipPermissions: z.boolean().optional(),
+  command: z.string().optional(),
+  pure: z.boolean().optional(),
+  logLevel: z.enum(["DEBUG", "INFO", "WARN", "ERROR"]).optional(),
+  printLogs: z.boolean().optional(),
+});
+
 const AgentConfigSchema = z.object({
   type: z.string(),
   cmd: z.string().optional(),
@@ -102,8 +123,18 @@ const AgentConfigSchema = z.object({
   model: z.string().optional(),
   model_params: z.record(z.string(), z.unknown()).optional(),
   costPerMillionTokens: z.number().optional(),
+  pricing: z
+    .object({
+      inputCostPerMillionTokens: z.number(),
+      outputCostPerMillionTokens: z.number(),
+    })
+    .optional(),
   options: z
-    .union([CopilotAgentOptionsSchema, GeminiAgentOptionsSchema])
+    .union([
+      CopilotAgentOptionsSchema,
+      GeminiAgentOptionsSchema,
+      OpencodeAgentOptionsSchema,
+    ])
     .optional(),
 });
 
@@ -120,7 +151,7 @@ const VariantDefaultsSchema = VariantConfigSchema.omit({ name: true });
 const MeasurementsSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("judge"),
-    provider: z.enum(["copilot", "gemini"]).default("copilot"),
+    provider: z.enum(["copilot", "gemini", "opencode"]).default("copilot"),
     model: z.string().optional(),
     acceptanceCriteria: z.array(z.string()).optional(),
   }),

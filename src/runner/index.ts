@@ -48,8 +48,8 @@ function buildModelParams(config: AgentConfig): ModelParams {
 
 /**
  * Tries to parse LLM token usage from agent stdout.
- * Supports Claude JSON output (`--output-format json`) and
- * Copilot JSONL output (`--output-format json`).
+ * Supports Claude JSON output, Copilot JSONL output,
+ * and opencode JSON event streams.
  */
 function parseTokenUsage(stdout: string): TokenUsage | null {
   // Claude: single JSON object with usage.input_tokens / usage.output_tokens
@@ -91,6 +91,23 @@ function parseTokenUsage(stdout: string): TokenUsage | null {
           inputTokens = usage.input_tokens;
         if (typeof usage.output_tokens === "number")
           outputTokens = usage.output_tokens;
+      }
+
+      const part = event.part as
+        | {
+            tokens?: {
+              input?: number;
+              output?: number;
+            };
+          }
+        | undefined;
+      if (part?.tokens) {
+        if (typeof part.tokens.input === "number") {
+          inputTokens = part.tokens.input;
+        }
+        if (typeof part.tokens.output === "number") {
+          outputTokens = part.tokens.output;
+        }
       }
     } catch {
       // skip non-JSON lines
@@ -136,6 +153,7 @@ export async function runOnce(
   const adapter = getAdapter(effectiveVariant!.agent!.type!);
   const agentVersion = adapter.getVersion(effectiveVariant!.agent!);
   const invokeResult = await adapter.invoke(workspacePath, effectiveVariant);
+  const tokenUsage = parseTokenUsage(invokeResult.stdout);
 
   // 4. Run after-commands in workspace (defaults merged with variant)
   const afterCmds = [
@@ -152,6 +170,8 @@ export async function runOnce(
     invokeResult.stdout,
     invokeResult.startedAt,
     invokeResult.completedAt,
+    tokenUsage,
+    effectiveVariant.agent.pricing,
     effectiveVariant.agent.costPerMillionTokens,
   );
 
@@ -170,7 +190,7 @@ export async function runOnce(
     startedAt: invokeResult.startedAt.toISOString(),
     completedAt: invokeResult.completedAt.toISOString(),
     modelParams: buildModelParams(effectiveVariant.agent),
-    tokenUsage: parseTokenUsage(invokeResult.stdout),
+    tokenUsage,
     metrics,
     scoring,
     stdout: invokeResult.stdout,
@@ -224,6 +244,7 @@ export async function runTask(
   benchConfig: BenchConfig,
   runs: number,
   runSetId: string,
+  force = false,
   onProgress?: (attempt: number, total: number, result: RunResult) => void,
   onAttemptStart?: (attempt: number, total: number) => void,
   variantName?: string,
@@ -231,10 +252,9 @@ export async function runTask(
 ): Promise<RunResult[]> {
   const results: RunResult[] = [];
 
-  const { count: existingCount } = countExistingRuns(
-    variant.name,
-    benchConfig.options!.outputDir,
-  );
+  const existingCount = force
+    ? 0
+    : countExistingRuns(variant.name, benchConfig.options!.outputDir).count;
 
   const remaining = runs - existingCount;
   if (remaining <= 0) return results;

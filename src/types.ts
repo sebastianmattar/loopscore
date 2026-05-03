@@ -1,4 +1,4 @@
-export type JudgeProvider = "copilot" | "gemini";
+export type JudgeProvider = "copilot" | "gemini" | "opencode";
 
 // ── Agent ─────────────────────────────────────────────────────────────────────
 
@@ -173,6 +173,45 @@ export interface GeminiAgentOptions {
   acceptRawOutputRisk?: boolean;
 }
 
+export interface OpencodeAgentOptions {
+  /** Pass --agent <agent>. */
+  agent?: string;
+  /** Pass --continue. */
+  continue?: boolean;
+  /** Pass --session <id>. */
+  session?: string;
+  /** Pass --fork. */
+  fork?: boolean;
+  /** Pass --share. */
+  share?: boolean;
+  /** Pass --file <path> for each entry. Supports {workspacePath} template. */
+  file?: string[];
+  /** Pass --title <title>. */
+  title?: string;
+  /** Pass --attach <url>. */
+  attach?: string;
+  /** Pass --password <password>. */
+  password?: string;
+  /** Pass --dir <path>. Supports {workspacePath} template. */
+  dir?: string;
+  /** Pass --port <port>. */
+  port?: number;
+  /** Pass --variant <variant>. */
+  variant?: string;
+  /** Pass --thinking. */
+  thinking?: boolean;
+  /** Pass --dangerously-skip-permissions (default: true). */
+  dangerouslySkipPermissions?: boolean;
+  /** Pass --command <command>. */
+  command?: string;
+  /** Pass --pure. */
+  pure?: boolean;
+  /** Pass --log-level <level>. */
+  logLevel?: "DEBUG" | "INFO" | "WARN" | "ERROR";
+  /** Pass --print-logs. */
+  printLogs?: boolean;
+}
+
 export interface AgentConfig {
   type: string;
   /** Executable name, e.g. "copilot" or "gemini" */
@@ -187,8 +226,10 @@ export interface AgentConfig {
   model_params?: Record<string, unknown>;
   /** USD cost per 1 million tokens, used for cost estimation. */
   costPerMillionTokens?: number;
+  /** Explicit per-model pricing using real input/output token counts. */
+  pricing?: ModelPricing;
   /** Tool-specific CLI options. Fields depend on the agent type. */
-  options?: CopilotAgentOptions | GeminiAgentOptions;
+  options?: CopilotAgentOptions | GeminiAgentOptions | OpencodeAgentOptions;
 }
 
 /** Interface that every agent adapter must implement */
@@ -238,6 +279,11 @@ export interface CriterionScore {
   reasoning: string;
 }
 
+export interface ModelPricing {
+  inputCostPerMillionTokens: number;
+  outputCostPerMillionTokens: number;
+}
+
 export interface LLMJudgeResult {
   score: number;
   criteria: CriterionScore[];
@@ -245,6 +291,7 @@ export interface LLMJudgeResult {
   summary: string;
   provider: JudgeProvider;
   model: string;
+  tokenUsage?: TokenUsage | null;
 }
 
 export interface TestResult {

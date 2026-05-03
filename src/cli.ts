@@ -108,6 +108,7 @@ async function runAgentWithSpinner(
     config,
     runs,
     runSetId,
+    force,
     (attempt, total, result) => {
       clearInterval(ticker);
       const score =
@@ -185,6 +186,7 @@ async function runAgentParallel(
     config,
     runs,
     runSetId,
+    force,
     (attempt, total, result) => {
       const m = result.metrics;
       const elapsed = (m.timeMs / 1000).toFixed(1);

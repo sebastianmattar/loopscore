@@ -5,21 +5,21 @@ options:
 
 variantDefaults:
   agent:
-    type: copilot
-    model: gpt-5
-    pricing:
-      inputCostPerMillionTokens: 1.25
-      outputCostPerMillionTokens: 10.0
-
+    type: opencode
+    model: github-copilot/gpt-5.4
+    options:
+      agent: build
+      dangerouslySkipPermissions: true
+      variant: high
   setup:
     files:
       requirements.md: |
         Implement a simple REST API server in TypeScript using Node.js built-ins (no frameworks).
         The server should run on port 3000 and handle the following endpoints:
-          - GET  /health         → { status: "ok" }
-          - GET  /items          → returns array of all items
-          - POST /items          → creates a new item (body: { name: string }), returns created item with id
-          - GET  /items/:id      → returns a single item by id, 404 if not found
+          - GET  /health         -> { status: "ok" }
+          - GET  /items          -> returns array of all items
+          - POST /items          -> creates a new item (body: { name: string }), returns created item with id
+          - GET  /items/:id      -> returns a single item by id, 404 if not found
         Items should be stored in-memory. Include a README with usage instructions.
 
         Use TypeScript with strict mode enabled. No external HTTP framework dependencies (use Node.js `http` module).
@@ -27,21 +27,21 @@ variantDefaults:
         Use the current stable versions for dependencies. Use pnpm as package manager.
 
 variants:
-  - name: without-caveman
+  - name: opencode-default
     query:
       - Implement requirements.md
-  - name: with-caveman
+  - name: opencode-thinking
+    agent:
+      options:
+        thinking: true
+        variant: max
     query:
-      - /caveman full
       - Implement requirements.md
-    commands:
-      before:
-        - npx skills add https://github.com/JuliusBrussee/caveman/tree/main/skills/caveman
 
 measure:
   - type: judge
-    provider: copilot
-    model: gpt-5
+    provider: opencode
+    model: github-copilot/gpt-5.4
     acceptanceCriteria:
       - 'GET /health returns 200 with {"status":"ok"}'
       - GET /items returns an array (initially empty)
@@ -54,11 +54,6 @@ measure:
     command: npm run build
     scoreIfPasses: 10
     scoreIfFails: -10
-  - type: shell
-    name: Always fails
-    command: exit 1
-    scoreIfPasses: 0
-    scoreIfFails: 10
   - type: shell
     name: pnpm used?
     command: (ls pnpm-lock.yaml && echo ok) || exit 1

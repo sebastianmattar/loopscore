@@ -65,13 +65,13 @@ export async function runLLMJudge(
   model?: string,
 ): Promise<LLMJudgeResult> {
   const userPrompt = buildUserPrompt(acceptanceCriteria, workspaceSnapshot);
-  const rawResponse = await runProviderJudge(
+  const judgeResult = await runProviderJudge(
     getProvider(provider),
     SYSTEM_PROMPT,
     userPrompt,
     model,
   );
-  const parsed = parseJudgeResponse(rawResponse);
+  const parsed = parseJudgeResponse(judgeResult.content);
 
   return {
     score: parsed.overall,
@@ -80,5 +80,6 @@ export async function runLLMJudge(
     summary: parsed.summary ?? "",
     provider,
     model: model ?? `${provider}-default`,
+    tokenUsage: judgeResult.tokenUsage,
   };
 }

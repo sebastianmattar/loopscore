@@ -1,5 +1,2 @@
 - Add more benchmarks
-- Summary should contain token count
-- Select model
-- Add costs
-- Format time taken
+- Summary should also summarize the llm judge

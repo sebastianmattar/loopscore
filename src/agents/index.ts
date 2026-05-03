@@ -1,6 +1,7 @@
 import type { AgentAdapter } from "../types.js";
 import copilotAdapter from "./copilot.js";
 import geminiAdapter from "./gemini.js";
+import opencodeAdapter from "./opencode.js";
 
 /**
  * Built-in adapters. Keys match the `name` field in AgentConfig.
@@ -9,6 +10,7 @@ import geminiAdapter from "./gemini.js";
 const BUILT_IN_ADAPTERS: Record<string, AgentAdapter> = {
   copilot: copilotAdapter,
   gemini: geminiAdapter,
+  opencode: opencodeAdapter,
 };
 
 /**

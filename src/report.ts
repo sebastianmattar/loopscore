@@ -10,9 +10,10 @@ export function formatReport(summary: RunSetSummary): string {
   lines.push(
     chalk.bold(`\n  Run Set: ${summary.runSetId}`),
     `  Variant:    ${summary.variantName}`,
-    `  Agent:   ${summary.agentName}`,
-    `  Runs:    ${summary.totalRuns}`,
-    `  At:      ${summary.completedAt}`,
+    `  Agent:      ${summary.agentName}`,
+    `  Model:      ${getSummaryModel(summary)}`,
+    `  Runs:       ${summary.totalRuns}`,
+    `  At:         ${summary.completedAt}`,
     "",
   );
 
@@ -28,9 +29,9 @@ export function formatReport(summary: RunSetSummary): string {
   });
 
   table.push(
-    metricRow("Time (ms)", summary.metrics.timeMs, (v) => `${v}`),
+    metricRow("Time (s)", summary.metrics.timeMs, formatSeconds),
     metricRow("Lines added", summary.metrics.lineCount, (v) => `${v}`),
-    metricRow("Est. tokens", summary.metrics.tokenCount, (v) => `${v}`),
+    metricRow("Tokens", summary.metrics.tokenCount, (v) => `${v}`),
   );
 
   if (summary.metrics.estimatedCostUsd) {
@@ -76,15 +77,19 @@ export function formatCompare(summaries: RunSetSummary[]): string {
 
   const rows: Array<{ label: string; stat: (s: RunSetSummary) => string }> = [
     {
-      label: "Time (ms)",
-      stat: (s) => formatMean(s.metrics.timeMs),
+      label: "Model",
+      stat: (s) => getSummaryModel(s),
+    },
+    {
+      label: "Time (s)",
+      stat: (s) => formatSeconds(s.metrics.timeMs.mean),
     },
     {
       label: "Lines added",
       stat: (s) => formatMean(s.metrics.lineCount),
     },
     {
-      label: "Est. tokens",
+      label: "Tokens",
       stat: (s) => formatMean(s.metrics.tokenCount),
     },
     {
@@ -125,10 +130,12 @@ export function formatScoreboard(summaries: RunSetSummary[]): string {
     head: [
       chalk.cyan("Variant"),
       chalk.cyan("Agent"),
+      chalk.cyan("Model"),
       chalk.cyan("Overall"),
       chalk.cyan("LLM Judge"),
       chalk.cyan("Checks"),
-      chalk.cyan("Time (ms)"),
+      chalk.cyan("Time (s)"),
+      chalk.cyan("Tokens"),
       chalk.cyan("Lines"),
       chalk.cyan("Est. cost"),
       chalk.cyan("Runs"),
@@ -160,10 +167,12 @@ export function formatScoreboard(summaries: RunSetSummary[]): string {
     table.push([
       s.variantName,
       s.agentName,
+      getSummaryModel(s),
       score,
       llmJudge,
       checks,
-      formatMean(s.metrics.timeMs),
+      formatSeconds(s.metrics.timeMs.mean),
+      formatMean(s.metrics.tokenCount),
       formatMean(s.metrics.lineCount),
       cost,
       `${s.totalRuns}`,
@@ -200,9 +209,10 @@ export function formatScoreboardMarkdown(
     const cost = s.metrics.estimatedCostUsd
       ? `$${s.metrics.estimatedCostUsd.mean.toFixed(4)}`
       : "—";
-    const time = formatMean(s.metrics.timeMs);
+    const time = formatSeconds(s.metrics.timeMs.mean);
+    const tokens = formatMean(s.metrics.tokenCount);
     const lines = formatMean(s.metrics.lineCount);
-    return `| ${s.agentName} | ${s.variantName} | ${score} | ${llmJudge} | ${checks} | ${time} | ${lines} | ${cost} | ${s.totalRuns} |`;
+    return `| ${s.agentName} | ${s.variantName} | ${getSummaryModel(s)} | ${score} | ${llmJudge} | ${checks} | ${time} | ${tokens} | ${lines} | ${cost} | ${s.totalRuns} |`;
   });
 
   const lines: string[] = [];
@@ -214,8 +224,8 @@ export function formatScoreboardMarkdown(
   lines.push(
     "## Scoreboard",
     "",
-    "| Agent | Variant | Overall | LLM Judge | Checks | Time (ms) | Lines | Est. cost | Runs |",
-    "|-------|---------|--------:|----------:|-------:|----------:|------:|-----------|-----:|",
+    "| Agent | Variant | Model | Overall | LLM Judge | Checks | Time (s) | Tokens | Lines | Est. cost | Runs |",
+    "|-------|---------|-------|--------:|----------:|-------:|---------:|-------:|------:|-----------|-----:|",
     ...rows,
     "",
   );
@@ -257,12 +267,14 @@ export function formatRunDetailsMarkdown(
           run.metrics.estimatedCostUsd != null
             ? `$${run.metrics.estimatedCostUsd.toFixed(4)}`
             : "—";
+        const model = run.modelParams.model ?? "—";
         lines.push(
-          `**Run ${run.attemptNumber}** — ${run.completedAt} · ${run.metrics.timeMs}ms · ${run.metrics.lineCount} lines · score: ${score}`,
+          `**Run ${run.attemptNumber}** — ${run.completedAt} · ${formatSeconds(run.metrics.timeMs)} · ${run.metrics.tokenCount} tokens · ${run.metrics.lineCount} lines · score: ${score}`,
           "",
           "| Metric | Value |",
           "|--------|------:|",
-          `| Time | ${run.metrics.timeMs}ms |`,
+          `| Model | ${model} |`,
+          `| Time | ${formatSeconds(run.metrics.timeMs)} |`,
           `| Lines | ${run.metrics.lineCount} |`,
           `| Tokens | ${run.metrics.tokenCount} |`,
           `| Est. cost | ${cost} |`,
@@ -288,6 +300,12 @@ export function formatRunDetailsMarkdown(
               );
             }
             lines.push("");
+          }
+          if (judge.tokenUsage) {
+            lines.push(
+              `Judge tokens: input ${judge.tokenUsage.inputTokens ?? "—"}, output ${judge.tokenUsage.outputTokens ?? "—"}`,
+              "",
+            );
           }
         }
 
@@ -328,4 +346,13 @@ function metricRow(
 
 function formatMean(stat: StatSummary): string {
   return stat.mean % 1 === 0 ? `${stat.mean}` : stat.mean.toFixed(2);
+}
+
+function formatSeconds(valueMs: number): string {
+  const seconds = valueMs / 1000;
+  return seconds % 1 === 0 ? `${seconds}s` : `${seconds.toFixed(2)}s`;
+}
+
+function getSummaryModel(summary: RunSetSummary): string {
+  return summary.agentConfig.model ?? "—";
 }

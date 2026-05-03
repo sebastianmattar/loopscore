@@ -4,8 +4,14 @@ import type {
   AgentConfig,
   AgentInvokeResult,
   JudgeProvider,
+  TokenUsage,
   VariantConfig,
 } from "../types.js";
+
+export interface ProviderJudgeResult {
+  content: string;
+  tokenUsage: TokenUsage | null;
+}
 
 export interface CLIProvider {
   name: JudgeProvider;
@@ -14,9 +20,11 @@ export interface CLIProvider {
   buildAgentOptionArgs(
     options: Record<string, unknown>,
     workspacePath: string,
+    agentConfig: AgentConfig,
   ): string[];
   buildJudgeArgs(prompt: string, model?: string): string[];
   extractJudgeContent(stdout: string): string;
+  extractTokenUsage?(stdout: string): TokenUsage | null;
   validateEnvironment?(): void;
 }
 
@@ -112,6 +120,7 @@ export function invokeProviderAgent(
     .buildAgentOptionArgs(
       (resolvedAgent.options as Record<string, unknown>) ?? {},
       workspacePath,
+      resolvedAgent,
     )
     .map((arg) => replaceTemplateVars(arg, templateVariables));
 
@@ -127,7 +136,7 @@ export async function runProviderJudge(
   systemPrompt: string,
   userPrompt: string,
   model?: string,
-): Promise<string> {
+): Promise<ProviderJudgeResult> {
   const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
 
   try {
@@ -139,7 +148,10 @@ export async function runProviderJudge(
         maxBuffer: 10 * 1024 * 1024,
       },
     );
-    return provider.extractJudgeContent(stdout);
+    return {
+      content: provider.extractJudgeContent(stdout),
+      tokenUsage: provider.extractTokenUsage?.(stdout) ?? null,
+    };
   } catch (err: unknown) {
     throw formatExecError(`${provider.name} CLI judge failed`, err);
   }

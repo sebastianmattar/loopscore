@@ -2,7 +2,17 @@ import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
-import type { ComplexityResult, Metrics } from "./types.js";
+import {
+  estimateFlatTokenCost,
+  estimateModelTokenCost,
+  getTotalTokenUsage,
+} from "./pricing.js";
+import type {
+  ComplexityResult,
+  Metrics,
+  ModelPricing,
+  TokenUsage,
+} from "./types.js";
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -11,16 +21,19 @@ export async function collectMetrics(
   agentStdout: string,
   startedAt: Date,
   completedAt: Date,
+  tokenUsage: TokenUsage | null,
+  pricing?: ModelPricing,
   costPerMillionTokens?: number,
 ): Promise<Metrics> {
   const timeMs = completedAt.getTime() - startedAt.getTime();
   const lineCount = measureLineCount(workspacePath);
   const complexity = measureComplexity(workspacePath);
-  const tokenCount = estimateTokens(workspacePath, agentStdout);
+  const estimatedTokens = estimateTokens(workspacePath, agentStdout);
+  const actualTokenCount = getTotalTokenUsage(tokenUsage);
+  const tokenCount = actualTokenCount ?? estimatedTokens;
   const estimatedCostUsd =
-    costPerMillionTokens != null
-      ? +((tokenCount / 1_000_000) * costPerMillionTokens).toFixed(6)
-      : null;
+    estimateModelTokenCost(tokenUsage, pricing) ??
+    estimateFlatTokenCost(tokenCount, costPerMillionTokens);
 
   return { timeMs, lineCount, tokenCount, estimatedCostUsd, complexity };
 }
