@@ -5,8 +5,5 @@ import { BenchConfigSchema } from "../src/config.js";
 
 const schema = z.toJSONSchema(BenchConfigSchema);
 
-const outPath = path.resolve(
-  import.meta.dirname,
-  "../bench-config.schema.json",
-);
+const outPath = path.resolve(import.meta.dirname, "../bench.schema.json");
 fs.writeFileSync(outPath, JSON.stringify(schema, null, 2) + "\n");

@@ -241,7 +241,7 @@ export function buildCLI(): Command {
   program
     .command("run")
     .description("Run a benchmark")
-    .argument("config", "Path to config file (e.g. mybench.config.yaml)")
+    .argument("config", "Path to config file (e.g. mybench.bench.yaml)")
     .option(
       "-f, --force",
       "Run even if enough runs already exist for this configuration",
@@ -338,7 +338,7 @@ export function buildCLI(): Command {
   // ── bench report ──────────────────────────────────────────────────────────
   program
     .command("report")
-    .argument("config", "Path to config file (e.g. mybench.config.yaml)")
+    .argument("config", "Path to config file (e.g. mybench.bench.yaml)")
     .description(
       "Show metrics and scores for a run set, or all run sets with --all",
     )
@@ -360,7 +360,7 @@ export function buildCLI(): Command {
   program
     .command("scoreboard")
     .description("Show a ranked overview of all run sets")
-    .argument("config", "Path to config file (e.g. mybench.config.yaml)")
+    .argument("config", "Path to config file (e.g. mybench.bench.yaml)")
     .option("-m, --markdown", "Output as Markdown instead of a terminal table")
     .action((configFile, opts: { markdown?: boolean }) => {
       const config = loadConfig(configFile as string);
@@ -391,8 +391,8 @@ export function buildCLI(): Command {
       );
 
       // ── Copy schema ──────────────────────────────────────────────────────
-      const schemaSource = path.join(packageRoot, "bench-config.schema.json");
-      const schemaDest = path.join(cwd, "bench-config.schema.json");
+      const schemaSource = path.join(packageRoot, "bench.schema.json");
+      const schemaDest = path.join(cwd, "bench.schema.json");
       fs.copyFileSync(schemaSource, schemaDest);
       console.log(chalk.green(`  ✓ Written: ${schemaDest}`));
 
@@ -409,12 +409,12 @@ export function buildCLI(): Command {
       const exampleSource = path.join(
         packageRoot,
         "benchmarks",
-        "caveman-skill.config.yaml",
+        "caveman-skill.bench.yaml",
       );
       const exampleDest = path.join(
         cwd,
         "benchmarks",
-        "caveman-skill.config.yaml",
+        "caveman-skill.bench.yaml",
       );
       if (copyMissingScaffold(exampleSource, exampleDest)) {
         console.log(chalk.green(`  ✓ Scaffolded: ${exampleDest}`));
@@ -465,8 +465,8 @@ export function buildCLI(): Command {
         string,
         unknown
       >;
-      const schemaKey = "./bench-config.schema.json";
-      const schemaGlobs = ["*.config.yaml", "benchmarks/*.config.yaml"];
+      const schemaKey = "./bench.schema.json";
+      const schemaGlobs = ["*.bench.yaml", "benchmarks/*.bench.yaml"];
       const existing = yamlSchemas[schemaKey];
       const alreadySet = Array.isArray(existing)
         ? schemaGlobs.every((glob) => existing.includes(glob))

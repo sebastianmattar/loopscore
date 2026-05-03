@@ -23,15 +23,15 @@ Let's find out with an artificial benchmark!
 
 ```bash
 npx @sebastianmattar/loopscore init # initialize the current directory with config and presets
-npx @sebastianmattar/loopscore run benchmarks/caveman-skill.config.yaml # Execute the test
+npx @sebastianmattar/loopscore run benchmarks/caveman-skill.bench.yaml # Execute the test
 ```
 
 This will generate a `benchmarks/results` directory containing details of all runs as well as a `summary.md`. This is the relevant table:
 
-| Agent   | Variant         | Overall | LLM Judge | Checks | Time (ms) | Lines | Est. cost | Runs |
-| ------- | --------------- | ------: | --------: | -----: | --------: | ----: | --------- | ---: |
-| copilot | without-caveman |   2.990 |     0.980 |  5.000 |    153274 |   153 | —         |    1 |
-| copilot | with-caveman    |   2.940 |     0.880 |  5.000 |    104234 |   116 | —         |    1 |
+| Agent   | Variant         | Model   | Overall | LLM Judge | Checks | Time (s) | Tokens | Lines | Est. cost | Runs |
+| ------- | --------------- | ------- | ------: | --------: | -----: | -------: | -----: | ----: | --------- | ---: |
+| copilot | without-caveman | gpt-5.4 |   5.450 |     0.900 | 10.000 |  164.28s |    557 |   170 | $0.0056   |    1 |
+| copilot | with-caveman    | gpt-5.4 |   5.435 |     0.870 | 10.000 |  133.70s |    194 |   114 | $0.0019   |    1 |
 
 **Answer:** Caveman runs faster, requires less tokens (cheaper) but has worse quality - interesting!
 
@@ -107,13 +107,13 @@ npx loopscore init
 Then run a bundled example benchmark:
 
 ```bash
-npx loopscore run benchmarks/caveman-skill.config.yaml
+npx loopscore run benchmarks/caveman-skill.bench.yaml
 ```
 
 There is also a dedicated OpenCode example benchmark:
 
 ```bash
-npx loopscore run benchmarks/opencode.config.yaml
+npx loopscore run benchmarks/opencode.bench.yaml
 ```
 
 ## Providers

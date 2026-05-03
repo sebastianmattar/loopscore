@@ -1,6 +1,6 @@
 ---
 name: create-loopscore-benchmark
-description: "Create benchmark config files for loopscore using bench-config.schema.json. Use when designing new benchmark variants, judge criteria, or shell-based scoring checks."
+description: "Create benchmark config files for loopscore using bench.schema.json. Use when designing new benchmark variants, judge criteria, or shell-based scoring checks."
 argument-hint: "What should this benchmark evaluate?"
 user-invocable: true
 ---
@@ -25,14 +25,14 @@ Create or update a benchmark config that is valid for this repository and aligne
 
 ## Required References
 
-- Schema: bench-config.schema.json
-- Example: benchmarks/caveman-skill.config.yaml
+- Schema: bench.schema.json
+- Example: benchmarks/caveman-skill.bench.yaml
 
 ## Procedure
 
 1. Choose output path.
 
-- Prefer benchmarks/<benchmark-name>.config.yaml.
+- Prefer benchmarks/<benchmark-name>.bench.yaml.
 - Use a descriptive benchmark name that maps to the file name.
 
 2. Start from the minimum valid shape.
@@ -74,7 +74,7 @@ Create or update a benchmark config that is valid for this repository and aligne
 
 - Verify each command is runnable in the generated workspace context.
 - Confirm scoring balance (judge + shell) matches benchmark intent.
-- Ensure schema compatibility with bench-config.schema.json.
+- Ensure schema compatibility with bench.schema.json.
 
 8. Final quality pass.
 
@@ -96,7 +96,7 @@ Create or update a benchmark config that is valid for this repository and aligne
 
 ## Completion Criteria
 
-- Config conforms to bench-config.schema.json.
+- Config conforms to bench.schema.json.
 - At least one variant and one measure entry exist.
 - Judge acceptance criteria are concrete and verifiable.
 - Shell checks are deterministic and meaningful.

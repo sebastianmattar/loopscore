@@ -195,7 +195,7 @@ export function loadConfig(configPath: string): BenchConfig {
   // Resolve relative paths relative to the config file directory
   const configDir = path.dirname(resolvedPath);
 
-  // Derive benchmark name from config filename: "bench.config.yaml" → "bench"
+  // Derive benchmark name from config filename: "bench.bench.yaml" → "bench"
   const benchName = path.basename(resolvedPath).split(".")[0] ?? "bench";
 
   return {

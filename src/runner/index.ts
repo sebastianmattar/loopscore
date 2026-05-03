@@ -87,10 +87,49 @@ function parseTokenUsage(stdout: string): TokenUsage | null {
       const event = JSON.parse(trimmed) as Record<string, unknown>;
       const usage = event.usage as Record<string, unknown> | undefined;
       if (usage) {
-        if (typeof usage.input_tokens === "number")
+        if (typeof usage.input_tokens === "number") {
           inputTokens = usage.input_tokens;
-        if (typeof usage.output_tokens === "number")
+        }
+        if (typeof usage.output_tokens === "number") {
           outputTokens = usage.output_tokens;
+        }
+        if (typeof usage.inputTokens === "number") {
+          inputTokens = usage.inputTokens;
+        }
+        if (typeof usage.outputTokens === "number") {
+          outputTokens = usage.outputTokens;
+        }
+      }
+
+      const data = event.data as Record<string, unknown> | undefined;
+      const dataUsage = data?.usage as Record<string, unknown> | undefined;
+      if (dataUsage) {
+        if (typeof dataUsage.input_tokens === "number") {
+          inputTokens = dataUsage.input_tokens;
+        }
+        if (typeof dataUsage.output_tokens === "number") {
+          outputTokens = dataUsage.output_tokens;
+        }
+        if (typeof dataUsage.inputTokens === "number") {
+          inputTokens = dataUsage.inputTokens;
+        }
+        if (typeof dataUsage.outputTokens === "number") {
+          outputTokens = dataUsage.outputTokens;
+        }
+      }
+
+      if (typeof event.inputTokens === "number") {
+        inputTokens = event.inputTokens;
+      }
+      if (typeof event.outputTokens === "number") {
+        outputTokens = event.outputTokens;
+      }
+
+      if (typeof data?.inputTokens === "number") {
+        inputTokens = data.inputTokens;
+      }
+      if (typeof data?.outputTokens === "number") {
+        outputTokens = data.outputTokens;
       }
 
       const part = event.part as

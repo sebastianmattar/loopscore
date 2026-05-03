@@ -1,2 +1,5 @@
 - Add more benchmarks
 - Summary should also summarize the llm judge
+- better error handling for runs -> support failed state
+- Better detection for agent failures
+- Quantitative analysis of code quality
