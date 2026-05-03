@@ -4,7 +4,7 @@
         "name": "Sebastian Mattar",
         "email": "sebastian@mattar.xyz"
     },
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "Benchmark agentic coding AIs against coding tasks",
     "license": "MIT",
     "type": "module",

@@ -1,5 +1,13 @@
 # loopscore
 
+## 0.2.1
+
+### Patch Changes
+
+- [`8843394`](https://github.com/sebastianmattar/loopscore/commit/8843394eb361ab628bc7e44bbb4f77d72cfb793b) Thanks [@sebastianmattar](https://github.com/sebastianmattar)! - Fix README.md
+
+- [`68b0239`](https://github.com/sebastianmattar/loopscore/commit/68b0239a28c41475a456d9f3cda646458626c794) Thanks [@sebastianmattar](https://github.com/sebastianmattar)! - Fix pipeline
+
 ## 0.2.0
 
 ### Minor Changes
