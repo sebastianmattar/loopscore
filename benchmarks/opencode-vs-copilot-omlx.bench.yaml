@@ -1,0 +1,114 @@
+description: Compare opencode (Qwen3.5-9B-MLX-4bit/oMLX) against default Copilot on a TypeScript REST API task.
+
+options:
+  runCount: 1
+  parallel: true
+  outputDir: ./results
+
+variantDefaults:
+  setup:
+    files:
+      requirements.md: |
+        Implement a simple REST API server in TypeScript using Node.js built-ins (no frameworks).
+        The server should run on port 3000 and handle the following endpoints:
+          - GET  /health         -> { status: "ok" }
+          - GET  /items          -> returns array of all items
+          - POST /items          -> creates a new item (body: { name: string }), returns created item with id
+          - GET  /items/:id      -> returns a single item by id, 404 if not found
+
+        Items must be stored in-memory and include at minimum:
+          - id (uuid or incremental)
+          - name (string)
+          - createdAt (ISO string)
+
+        Use TypeScript with strict mode enabled.
+        Do not use external HTTP frameworks (use Node.js `http` module).
+        Include a README.md with setup and run instructions.
+        Use pnpm as the package manager.
+
+variants:
+  - name: opencode-omlx
+    setup:
+      files:
+        opencode.json: |
+          {
+            "$schema": "https://opencode.ai/config.json",
+            "provider": {
+              "omlx": {
+                "npm": "@ai-sdk/openai-compatible",
+                "name": "oMLX",
+                "options": {
+                  "baseURL": "http://127.0.0.1:8000/v1",
+                  "apiKey": "1234"
+                },
+                "models": {
+                  "Qwen3.5-9B-MLX-4bit": {
+                    "name": "Qwen3.5-9B-MLX-4bit",
+                    "modalities": {
+                      "input": [
+                        "text",
+                        "image"
+                      ],
+                      "output": [
+                        "text"
+                      ]
+                    },
+                    "attachment": true,
+                    "limit": {
+                      "context": 32768,
+                      "output": 32768
+                    }
+                  }
+                }
+              }
+            },
+            "model": "omlx/Qwen3.5-9B-MLX-4bit"
+          }
+
+    agent:
+      type: opencode
+      model: omlx/Qwen3.5-9B-MLX-4bit
+
+    query:
+      - Implement requirements.md
+
+  - name: copilot-default
+    agent:
+      type: copilot
+    query:
+      - Implement requirements.md
+
+measure:
+  - type: judge
+    provider: copilot
+    acceptanceCriteria:
+      - "GET /health returns HTTP 200 with a JSON body containing status=ok"
+      - GET /items returns a JSON array and is initially empty
+      - POST /items validates input, creates an item, and returns it with an id and createdAt
+      - GET /items/:id returns the correct item and returns 404 for unknown ids
+      - Server code is written in TypeScript and compiles without type errors
+      - README.md explains how to install dependencies and run the server
+
+  - type: shell
+    name: TypeScript build passes
+    command: npm run build
+    scoreIfPasses: 1
+    scoreIfFails: 0
+
+  - type: shell
+    name: README present
+    command: test -f README.md
+    scoreIfPasses: 1
+    scoreIfFails: 0
+
+  - type: shell
+    name: pnpm lockfile present
+    command: test -f pnpm-lock.yaml
+    scoreIfPasses: 1
+    scoreIfFails: 0
+
+  - type: shell
+    name: Strict mode enabled in tsconfig
+    command: node -e "const fs=require('fs'); const s=fs.readFileSync('tsconfig.json','utf8'); process.exit(/\"strict\"\\s*:\\s*true/.test(s)?0:1)"
+    scoreIfPasses: 1
+    scoreIfFails: 0

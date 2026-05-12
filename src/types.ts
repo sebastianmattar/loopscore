@@ -1,4 +1,4 @@
-export type JudgeProvider = "copilot" | "gemini" | "opencode";
+export type JudgeProvider = "claudecode" | "copilot" | "gemini" | "opencode";
 
 // ── Agent ─────────────────────────────────────────────────────────────────────
 
@@ -173,6 +173,31 @@ export interface GeminiAgentOptions {
   acceptRawOutputRisk?: boolean;
 }
 
+export interface ClaudeCodeAgentOptions {
+  /** Pass --add-dir <path> for each entry. */
+  addDir?: string[];
+  /** Pass --resume <session-id>. */
+  resume?: string;
+  /** Pass --continue. */
+  continue?: boolean;
+  /** Pass --verbose. */
+  verbose?: boolean;
+  /** Pass --max-turns <n>. */
+  maxTurns?: number;
+  /** Pass --system-prompt <prompt>. */
+  systemPrompt?: string;
+  /** Pass --append-system-prompt <prompt>. */
+  appendSystemPrompt?: string;
+  /** Pass --allowedTools <tools> for each entry. */
+  allowedTools?: string[];
+  /** Pass --disallowedTools <tools> for each entry. */
+  disallowedTools?: string[];
+  /** Pass --output-format <format> (default: "json"). */
+  outputFormat?: "text" | "json" | "stream-json";
+  /** Pass --dangerously-skip-permissions (default: true). */
+  dangerouslySkipPermissions?: boolean;
+}
+
 export interface OpencodeAgentOptions {
   /** Pass --agent <agent>. */
   agent?: string;
@@ -229,7 +254,7 @@ export interface AgentConfig {
   /** Explicit per-model pricing using real input/output token counts. */
   pricing?: ModelPricing;
   /** Tool-specific CLI options. Fields depend on the agent type. */
-  options?: CopilotAgentOptions | GeminiAgentOptions | OpencodeAgentOptions;
+  options?: ClaudeCodeAgentOptions | CopilotAgentOptions | GeminiAgentOptions | OpencodeAgentOptions;
 }
 
 /** Interface that every agent adapter must implement */

@@ -1,4 +1,5 @@
 import type { AgentAdapter } from "../types.js";
+import claudecodeAdapter from "./claudecode.js";
 import copilotAdapter from "./copilot.js";
 import geminiAdapter from "./gemini.js";
 import opencodeAdapter from "./opencode.js";
@@ -8,6 +9,7 @@ import opencodeAdapter from "./opencode.js";
  * To add a new agent, create a new file in src/agents/ and register it here.
  */
 const BUILT_IN_ADAPTERS: Record<string, AgentAdapter> = {
+  claudecode: claudecodeAdapter,
   copilot: copilotAdapter,
   gemini: geminiAdapter,
   opencode: opencodeAdapter,
