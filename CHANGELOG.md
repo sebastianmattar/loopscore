@@ -1,5 +1,19 @@
 # loopscore
 
+## 1.0.0
+
+### Major Changes
+
+- [`ca8a9ad`](https://github.com/sebastianmattar/loopscore/commit/ca8a9ad5aaa503f3309e85a135c88058ef5a4083) Thanks [@sebastianmattar](https://github.com/sebastianmattar)! - Use ".bench.yaml" as the default extension for benchmark files
+
+### Minor Changes
+
+- [`e0c83fc`](https://github.com/sebastianmattar/loopscore/commit/e0c83fc0c73a7f95326927294afed55d0fb52c20) Thanks [@sebastianmattar](https://github.com/sebastianmattar)! - Add support for Claude Code
+
+### Patch Changes
+
+- [`ca8a9ad`](https://github.com/sebastianmattar/loopscore/commit/ca8a9ad5aaa503f3309e85a135c88058ef5a4083) Thanks [@sebastianmattar](https://github.com/sebastianmattar)! - Fix cost calculation
+
 ## 0.2.1
 
 ### Patch Changes
